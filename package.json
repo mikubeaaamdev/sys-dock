@@ -1,0 +1,39 @@
+{
+  "name": "sys-dock",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Lightweight desktop system monitoring tool with instant-access widget dock",
+  "keywords": ["tauri", "react", "typescript", "system-monitoring", "desktop-app", "widgets", "performance"],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/sys-dock.git"
+  },
+  "homepage": "https://github.com/YOUR_USERNAME/sys-dock#readme",
+  "bugs": {
+    "url": "https://github.com/YOUR_USERNAME/sys-dock/issues"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "chart.js": "^4.4.0",
+    "react-chartjs-2": "^5.2.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/api": "^1.5.1",
+    "@tauri-apps/cli": "^1.5.6",
+    "@types/react": "^18.2.15",
+    "@types/react-dom": "^18.2.7",
+    "@vitejs/plugin-react": "^4.0.3",
+    "typescript": "^5.0.2",
+    "vite": "^4.4.4"
+  }
+}

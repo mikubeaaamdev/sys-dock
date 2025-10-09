@@ -1,0 +1,269 @@
+.sidebar {
+  width: 70px;
+  background-color: #e0d0c1 !important;
+  background: #e0d0c1 !important;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 15px 0; /* Reduced vertical padding for more cube-like proportions */
+  position: fixed;
+  left: 20px;
+  top: 20px;
+  height: calc(100vh - 40px);
+  z-index: 1000;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 35px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.sidebar.expanded {
+  width: 240px;
+  left: 20px;
+  border-radius: 30px;
+  padding: 15px 0; /* Consistent padding */
+}
+
+.hamburger-menu {
+  width: 40px; /* More square proportions */
+  height: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  margin-bottom: 20px; /* Reduced margin for tighter layout */
+  margin-top: 0;
+  border-radius: 8px; /* More square corners */
+  transition: all 0.3s ease;
+}
+
+.hamburger-menu:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  transform: scale(1.05);
+}
+
+.hamburger-line {
+  width: 18px;
+  height: 2px;
+  background-color: #8b7355;
+  margin: 1.5px 0;
+  border-radius: 1px;
+  transition: all 0.3s ease;
+}
+
+.sidebar.expanded .hamburger-line:nth-child(1) {
+  transform: rotate(45deg) translate(4px, 4px);
+}
+
+.sidebar.expanded .hamburger-line:nth-child(2) {
+  opacity: 0;
+}
+
+.sidebar.expanded .hamburger-line:nth-child(3) {
+  transform: rotate(-45deg) translate(4px, -4px);
+}
+
+.sidebar-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px; /* Tighter gap for cube-like stacking */
+  width: 100%;
+  padding: 0 8px; /* Reduced horizontal padding */
+  flex: 1;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.menu-item {
+  width: 54px; /* More square proportions */
+  height: 54px;
+  border-radius: 12px; /* Less rounded for more cube-like appearance */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  margin: 0; /* Remove auto margins for tighter cube grid */
+}
+
+.sidebar.expanded .menu-item {
+  width: calc(100% - 16px); /* Adjusted for reduced padding */
+  justify-content: flex-start;
+  padding: 0 15px;
+  border-radius: 14px; /* Slightly more rounded when expanded */
+  height: 54px; /* Keep consistent height */
+}
+
+/* Subtle gradient overlay on hover */
+.menu-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.1));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: inherit;
+}
+
+.menu-item:hover::before {
+  opacity: 1;
+}
+
+.menu-item:hover {
+  background: rgba(255, 255, 255, 0.35);
+  transform: scale(1.03); /* Reduced scale for more subtle cube effect */
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.menu-item.active {
+  background: rgba(255, 255, 255, 0.35);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: inherit;
+  transform: scale(1.02); /* Minimal scale for clean cube appearance */
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.menu-item.active::before {
+  opacity: 0.5;
+}
+
+/* Orange indicator line for active state */
+.menu-item.active::after {
+  content: '';
+  position: absolute;
+  right: -2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 20px;
+  background: #f97316;
+  border-radius: 2px;
+  opacity: 1;
+  box-shadow: 0 0 8px rgba(249, 115, 22, 0.4);
+}
+
+.sidebar.expanded .menu-item.active::after {
+  right: -1px;
+  width: 3px;
+  height: 24px;
+}
+
+.menu-icon {
+  width: 22px; /* Slightly larger for better cube proportions */
+  height: 22px;
+  color: #8b7355;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+.menu-item.active .menu-icon {
+  color: #6b5b47;
+  transform: scale(1.05);
+}
+
+.menu-item:hover .menu-icon {
+  color: #6b5b47;
+  transform: scale(1.05);
+}
+
+.menu-label {
+  margin-left: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b5b47;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-10px);
+  transition: all 0.3s ease;
+  z-index: 1;
+}
+
+.sidebar.expanded .menu-label {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.menu-item.active .menu-label {
+  color: #5a4a38;
+  font-weight: 600;
+}
+
+/* Smooth scrolling for overflow */
+.sidebar-menu::-webkit-scrollbar {
+  display: none;
+}
+
+.sidebar-menu {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overflow-y: auto;
+}
+
+/* Performance optimizations for Tauri */
+.sidebar {
+  will-change: transform, width;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.menu-item {
+  will-change: transform, background-color;
+  backface-visibility: hidden;
+}
+
+/* Responsive design maintaining cube proportions */
+@media (max-height: 700px) {
+  .sidebar {
+    top: 15px;
+    height: calc(100vh - 30px);
+    padding: 12px 0;
+  }
+  
+  .sidebar-menu {
+    gap: 4px; /* Tighter for smaller screens */
+  }
+  
+  .menu-item {
+    height: 48px;
+    width: 48px; /* Maintain square proportions */
+  }
+}
+
+@media (max-height: 600px) {
+  .sidebar {
+    top: 10px;
+    height: calc(100vh - 20px);
+    padding: 10px 0;
+  }
+  
+  .sidebar-menu {
+    gap: 3px;
+  }
+  
+  .menu-item {
+    height: 44px;
+    width: 44px; /* Keep square aspect ratio */
+  }
+  
+  .menu-icon {
+    width: 20px;
+    height: 20px;
+  }
+}
