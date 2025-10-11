@@ -1,7 +1,8 @@
 .header {
-  background-color: #eee7e7;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  padding: 15px 30px;
+  background-color: #f5f0e6; /* Lighter beige color from the image */
+  color: #333;
+  padding: 8px 16px;
+  border-bottom: 1px solid #ddd;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -13,6 +14,8 @@
   margin: 0;
   flex-shrink: 0;
   box-sizing: border-box;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: padding, transform;
 }
 
 .header-content {
@@ -20,113 +23,161 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  margin: 0;
-  padding: 0;
-  padding-left: 130px; /* Increased space for floating sidebar + comfortable gap */
-  transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin: 0; /* Remove auto margins that center content */
+  padding: 0 20px 0 80px; /* Default padding for collapsed sidebar */
   box-sizing: border-box;
+  transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: padding;
 }
 
 /* Adjust header content when sidebar expands */
-.sidebar.expanded ~ .main-content .header .header-content {
-  padding-left: 290px; /* Increased space for expanded sidebar + comfortable gap */
+.header.sidebar-expanded .header-content {
+  padding-left: 260px; /* Space for expanded sidebar */
 }
 
 .header-title {
   display: flex;
   align-items: center;
+  gap: -20px; /* Reduce the gap from 8px to 4px */
   flex: 1;
   margin: 0;
-  min-width: 0; /* Prevent text overflow issues */
+  min-width: 0;
+  justify-content: flex-start; /* Align to the left */
+  padding-left: 10px; /* Add some padding from the left edge */
+}
+
+/* Update header-logo styling */
+.header-logo {
+  height: 56px;
+  width: auto;
+  margin-right: 4px;
 }
 
 .header-title h1 {
-  font-size: 28px;
-  font-weight: 700;
-  color: #1f2937;
-  margin: 0;
-  letter-spacing: -0.5px;
-  white-space: nowrap; /* Prevent text wrapping for clean appearance */
+  font-size: 11rem;
+  font-weight: 600;
+  margin: -100;
+  line-height: 1.2; /* Better line height for alignment */
+  display: inline-flex;
+  align-items: center;
+  color: #5050e6; /* Blue color for SysDock text from the image */
 }
 
 .subtitle {
-  font-size: 14px;
-  color: #6b7280;
-  margin-left: 10px;
-  font-weight: 400;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis; /* Handle overflow gracefully */
+  font-size: 0.90rem;
+  font-weight: 500;
+  color: #5050e6;
+  line-height: 1.2;
+  display: block;
+  max-width: 125px; /* Increase width to fit the text better */
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin-left: -5; /* Remove the margin-left (currently set to 12 without units) */
+  padding-top: 2px;
 }
 
 .header-controls {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
   flex-shrink: 0;
   margin: 0;
   padding-right: 20px;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
 }
 
+/* Update control buttons to match sidebar styling */
 .control-btn {
-  width: 40px;
-  height: 40px;
-  border: none;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.7);
-  cursor: pointer;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  margin: 0 4px;
+}
+
+/* Subtle gradient overlay on hover */
+.control-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.1));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: inherit;
+}
+
+.control-btn:hover::before {
+  opacity: 1;
 }
 
 .control-btn:hover {
-  background: rgba(255, 255, 255, 0.9);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.control-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.35);
+  transform: scale(1.03);
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .control-icon {
-  width: 20px;
-  height: 20px;
-  color: #6b7280;
-  transition: color 0.3s ease;
+  width: 22px;
+  height: 22px;
+  color: #8b7355;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  z-index: 1;
+  font-size: 22px;
 }
 
-.control-btn:hover .control-icon {
-  color: #374151;
+/* Active state styling */
+.control-btn.active-icon {
+  background: rgba(255, 255, 255, 0.35);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: scale(1.02);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
-/* System monitoring notification indicator */
-.control-btn:nth-child(3)::after {
+.control-btn.active-icon::before {
+  opacity: 0.5;
+}
+
+/* Orange indicator for active state */
+.control-btn.active-icon::after {
   content: '';
   position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 8px;
-  height: 8px;
-  background: #ef4444;
-  border-radius: 50%;
-  border: 2px solid white;
-  opacity: 0.8;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 3px;
+  background: #5050e6;
+  border-radius: 2px;
+  opacity: 1;
+  box-shadow: 0 0 8px rgba(80, 80, 230, 0.4);
 }
 
 /* Responsive design optimized for widget management */
 @media (max-width: 1200px) {
   .header-content {
-    padding-left: 120px; /* Slightly reduced for medium screens */
+    padding: 0 20px 0 10px;
   }
   
   .sidebar.expanded ~ .main-content .header .header-content {
-    padding-left: 280px;
+    padding: 0 20px 0 10px;
   }
 }
 
@@ -137,11 +188,11 @@
   }
   
   .header-content {
-    padding-left: 100px; /* Adjusted for mobile */
+    padding: 0 15px 0 5px;
   }
   
   .sidebar.expanded ~ .main-content .header .header-content {
-    padding-left: 270px;
+    padding: 0 15px 0 5px;
   }
   
   .header-title h1 {
@@ -176,4 +227,20 @@
 /* Ensure header text doesn't interfere with sidebar transitions */
 .header-title {
   transform: translateZ(0);
+}
+
+/* Style for the hamburger menu button */
+.menu-button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 10px;
+  margin-right: 10px;
+  color: #333;
+}
+
+/* Remove the previous active-icon styling */
+.home-button.active-icon {
+  color: inherit;
+  border-bottom: none;
 }

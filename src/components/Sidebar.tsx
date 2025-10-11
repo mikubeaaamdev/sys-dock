@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   HomeIcon, 
   GridIcon, 
@@ -10,9 +10,10 @@ import {
   SettingsIcon 
 } from '../assets/icons';
 import './Sidebar.css';
+import { useSidebar } from '../context/SidebarContext';
 
 const Sidebar: React.FC = () => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const { isExpanded, toggleSidebar } = useSidebar();
 
   const menuItems = [
     { icon: HomeIcon, label: 'Overview', active: true },
@@ -27,7 +28,7 @@ const Sidebar: React.FC = () => {
 
   return (
     <div className={`sidebar ${isExpanded ? 'expanded' : ''}`}>
-      <div className="hamburger-menu" onClick={() => setIsExpanded(!isExpanded)}>
+      <div className="hamburger-menu" onClick={toggleSidebar}>
         <div className="hamburger-line"></div>
         <div className="hamburger-line"></div>
         <div className="hamburger-line"></div>

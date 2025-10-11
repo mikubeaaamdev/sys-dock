@@ -44,19 +44,12 @@ const Overview: React.FC = () => {
     return (bytes / (1024 * 1024 * 1024)).toFixed(1);
   };
 
-  // Get color class based on disk usage percentage
-  const getDiskUsageClass = (percentage: number): string => {
-    if (percentage < 50) return 'disk-usage-low';
-    if (percentage < 80) return 'disk-usage-medium';
-    return 'disk-usage-high';
-  };
-
   // Function to generate dynamic gradient based on percentage
   const getUsageGradient = (percentage: number): string => {
     if (percentage <= 50) {
       // Green to yellow (0-50%)
       return `linear-gradient(90deg, 
-        rgb(34, 197, 94) 0%, 
+        rgba(39, 195, 96, 1) 0%, 
         rgb(34, 197, 94) ${(50-percentage)*2}%, 
         rgb(245, 158, 11) 100%)`;
     } else {
@@ -138,6 +131,8 @@ const Overview: React.FC = () => {
 
   return (
     <div className="overview">
+      <h1 className="overview-title">OVERVIEW</h1>
+      
       <div className="overview-grid">
         {/* Left Column - Weather and Reminder */}
         <div className="left-column">
@@ -145,7 +140,7 @@ const Overview: React.FC = () => {
           <ReminderWidget />
         </div>
         
-        {/* Center Column - Circular Progress & Disk List */}
+        {/* Center Column */}
         <div className="center-column">
           {/* Memory with real-time data */}
           <CircularProgress
@@ -190,7 +185,7 @@ const Overview: React.FC = () => {
           </div>
         </div>
         
-        {/* Right Column - Performance Charts */}
+        {/* Right Column */}
         <div className="right-column">
           <PerformanceChart
             title="CPU"

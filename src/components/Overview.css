@@ -1,8 +1,11 @@
 .overview {
-  padding: 1.5rem;
+  padding: 1.5rem 2rem;
   width: 100%;
-  height: 100%;
+  height: calc(100vh - 70px); /* Subtract header height */
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
 }
 
 /* Add these new styles for disk elements */
@@ -34,10 +37,12 @@
 
 .overview-grid {
   display: grid;
-  grid-template-columns: 300px 1fr 1fr;
+  grid-template-columns: 300px minmax(400px, 1fr) 300px; /* Flexible middle column */
   gap: 20px;
   width: 100%;
-  height: 100%;
+  flex: 1; /* Take up remaining space */
+  min-height: 0; /* Important for proper flex behavior */
+  overflow: hidden; /* Prevent overall grid overflow */
 }
 
 .left-column,
@@ -47,10 +52,49 @@
   flex-direction: column;
   gap: 20px;
   height: 100%;
+  overflow-y: auto; /* Each column can scroll independently */
+  padding-bottom: 1rem; /* Space at bottom for scrolling */
 }
 
-.right-column {
-  overflow-y: auto; /* Make it scrollable if needed */
+/* Make widgets expand to fill space */
+.left-column > div,
+.center-column > div,
+.right-column > div {
+  flex-shrink: 0; /* Don't let widgets shrink */
+  width: 100%;
+}
+
+/* Make memory widget more prominent as in the image */
+.memory-widget {
+  background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 180px; /* Fixed height like in the image */
+  box-shadow: 0 4px 15px rgba(255, 154, 158, 0.2);
+}
+
+/* Make performance charts fill width better */
+.performance-chart {
+  width: 100%;
+  height: 120px; /* Fixed height to match image */
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f8f9fa;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+/* Make storage drives section fill the space properly */
+.storage-drives {
+  background: #333;
+  color: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  width: 100%;
 }
 
 /* Add these improved styles for the disk list */
@@ -141,11 +185,23 @@
   color: #ffffff;
 }
 
+/* Make the title more compact */
+.overview-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin: 0.5rem 0 1rem 0; /* Reduced bottom margin */
+  padding: 0;
+  color: #333;
+  font-family: 'Segoe UI', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
 /* Responsive design */
 @media (max-width: 1400px) {
   .overview-grid {
-    grid-template-columns: 280px 1fr 1fr;
-    gap: 1rem;
+    grid-template-columns: 280px 1fr 280px;
+    gap: 15px;
   }
 }
 
@@ -153,20 +209,13 @@
   .overview-grid {
     grid-template-columns: 1fr;
     grid-template-rows: auto auto auto;
+    gap: 15px;
   }
   
-  .left-column {
-    grid-row: 1;
-  }
-  
-  .center-column {
-    grid-row: 2;
-    grid-template-columns: repeat(3, 1fr);
-  }
-  
+  .left-column,
+  .center-column,
   .right-column {
-    grid-row: 3;
-    grid-template-columns: repeat(2, 1fr);
+    max-height: none;
   }
 }
 
