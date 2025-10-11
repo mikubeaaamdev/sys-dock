@@ -1,80 +1,105 @@
 .performance-chart {
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  width: 40%;
+  height: 120px; /* Reduced height to make charts more compact */
   border-radius: 12px;
-  padding: 1rem;
-  color: #333;
-  min-height: 120px;
-  transition: all 0.3s ease;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 16px; /* Add space between charts */
 }
 
-.performance-chart:hover {
-  background: rgba(255, 255, 255, 0.8);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-}
-
+/* Specific styles for different chart types */
 .performance-chart.cpu {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.6), rgba(239, 68, 68, 0.3));
-  border-color: rgba(239, 68, 68, 0.4);
+  background: #f8f0f0;
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .performance-chart.wifi {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.6), rgba(59, 130, 246, 0.3));
-  border-color: rgba(59, 130, 246, 0.4);
+  background: #f0f4fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 .performance-chart.gpu-0 {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.6), rgba(59, 130, 246, 0.3));
-  border-color: rgba(59, 130, 246, 0.4);
+  background: #f0f4fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 .performance-chart.gpu-1 {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.6), rgba(239, 68, 68, 0.3));
-  border-color: rgba(239, 68, 68, 0.4);
+  background: #f8f0f0;
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .chart-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
+  margin-bottom: 8px; /* Smaller margin */
 }
 
 .chart-title {
-  font-size: 1rem;
+  font-size: 16px;
   font-weight: 600;
-  margin: 0;
-  color: #333;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: #333333;
 }
 
 .chart-percentage {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333333;
 }
 
-.chart-container {
+.chart-content {
+  flex-grow: 1;
   width: 100%;
-  height: 60px;
-  overflow: hidden;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  position: relative;
 }
 
+/* Make the SVG smaller */
 .chart-svg {
   width: 100%;
-  height: 100%;
+  height: 50px; /* Reduced height for the chart */
+  display: block;
 }
 
-.chart-line {
-  filter: drop-shadow(0 0 4px currentColor);
-  transition: all 0.3s ease;
+/* Make grid lines more visible */
+.chart-svg line {
+  stroke: rgba(0, 0, 0, 0.1);
+  stroke-width: 0.5;
 }
 
-.performance-chart:hover .chart-line {
-  filter: drop-shadow(0 0 8px currentColor);
+.chart-info {
+  text-align: center;
+  font-size: 12px; /* Smaller font */
+  color: #555555;
+  position: absolute;
+  bottom: 6px; /* Adjust position */
+  left: 0;
+  right: 0;
+}
+
+/* Keep line colors vibrant */
+.performance-chart.cpu polyline,
+.performance-chart.gpu-1 polyline {
+  stroke: #ef4444;
+  stroke-width: 2.5; /* Thicker lines */
+}
+
+.performance-chart.wifi polyline,
+.performance-chart.gpu-0 polyline {
+  stroke: #3b82f6;
+  stroke-width: 2.5; /* Thicker lines */
+}
+
+/* Remove unused simplified view styles */
+.performance-simplified,
+.simplified-header,
+.simplified-title,
+.simplified-percentage,
+.simplified-info {
+  display: none;
 }

@@ -63,8 +63,51 @@
   transform: rotate(0deg);
 }
 
+/* Replace the rotate animation with a dynamic movement animation */
+@keyframes pulse-low {
+  0% { stroke-width: 7px; }
+  50% { stroke-width: 9px; }
+  100% { stroke-width: 7px; }
+}
+
+@keyframes pulse-medium {
+  0% { stroke-width: 7px; }
+  50% { stroke-width: 10px; }
+  100% { stroke-width: 7px; }
+}
+
+@keyframes pulse-high {
+  0% { stroke-width: 7px; }
+  35% { stroke-width: 11px; }
+  70% { stroke-width: 8px; }
+}
+
+/* Remove the rotating animation */
+.circular-progress.memory .progress-svg {
+  animation: none;
+}
+
+/* Progress circle transitions */
 .progress-circle {
-  transition: stroke-dashoffset 0.6s ease-in-out;
+  transition: stroke-dashoffset 0.6s ease-in-out, stroke 0.6s ease-in-out, stroke-width 0.3s ease;
+}
+
+/* Dynamic animations based on usage level */
+.progress-circle.usage-low {
+  animation: pulse-low 4s infinite ease-in-out;
+}
+
+.progress-circle.usage-medium {
+  animation: pulse-medium 2.5s infinite ease-in-out;
+}
+
+.progress-circle.usage-high {
+  animation: pulse-high 1.5s infinite ease-in-out;
+}
+
+/* Keep the text stable */
+.circular-progress.memory .progress-center {
+  animation: none;
 }
 
 .progress-center {

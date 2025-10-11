@@ -1,6 +1,7 @@
 import React from 'react';
 import './CircularProgress.css';
 
+// Update the props interface to include a hidePercentage option
 interface CircularProgressProps {
   percentage: number;
   size?: number;
@@ -11,6 +12,7 @@ interface CircularProgressProps {
   subtitle: string;
   centerText?: string;
   className?: string;
+  hidePercentage?: boolean; // Add this new prop
 }
 
 const CircularProgress: React.FC<CircularProgressProps> = ({
@@ -22,18 +24,26 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
   title,
   subtitle,
   centerText,
-  className = ''
+  className = '',
+  hidePercentage = false // Default to showing the percentage
 }) => {
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const strokeDasharray = circumference;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
+  
+  // Determine usage class for animation
+  const getUsageClass = (pct: number) => {
+    if (pct < 50) return 'usage-low';
+    if (pct < 80) return 'usage-medium';
+    return 'usage-high';
+  };
 
   return (
     <div className={`circular-progress ${className}`}>
       <div className="progress-header">
         <h3 className="progress-title">{title}</h3>
-        <span className="progress-percentage">{percentage}%</span>
+        {!hidePercentage && <span className="progress-percentage">{percentage}%</span>}
       </div>
       
       <div className="progress-container">
@@ -59,7 +69,7 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
             strokeDasharray={strokeDasharray}
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
-            className="progress-circle"
+            className={`progress-circle ${getUsageClass(percentage)}`}
             transform={`rotate(-90 ${size / 2} ${size / 2})`}
           />
         </svg>
