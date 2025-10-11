@@ -33,169 +33,121 @@ interface SystemOverview {
 const Overview: React.FC = () => {
   const [systemData, setSystemData] = useState<SystemOverview | null>(null);
   const [cpuHistory, setCpuHistory] = useState<number[]>(Array(16).fill(0));
-  
+  const [error, setError] = useState<string | null>(null);
+
   // Sample data for charts that don't have real-time data yet
   const wifiData = [70, 80, 85, 90, 85, 88, 92, 89, 85, 88, 90, 95, 92, 88, 85, 89];
   const gpu0Data = [10, 15, 20, 18, 25, 22, 18, 20, 15, 12, 18, 22, 25, 20, 15, 12];
   const gpu1Data = [5, 8, 12, 10, 15, 12, 8, 10, 7, 5, 8, 12, 15, 10, 7, 7];
 
-  // Format bytes to GB with 1 decimal place
-  const formatGB = (bytes: number) => {
-    return (bytes / (1024 * 1024 * 1024)).toFixed(1);
-  };
+  const formatGB = (bytes: number) => (bytes / (1024 * 1024 * 1024)).toFixed(1);
 
-  // Function to generate dynamic gradient based on percentage
   const getUsageGradient = (percentage: number): string => {
     if (percentage <= 50) {
-      // Green to yellow (0-50%)
-      return `linear-gradient(90deg, 
-        rgba(39, 195, 96, 1) 0%, 
-        rgb(34, 197, 94) ${(50-percentage)*2}%, 
-        rgb(245, 158, 11) 100%)`;
+      return `linear-gradient(90deg, rgba(39, 195, 96, 1) 0%, rgb(34, 197, 94) ${(50-percentage)*2}%, rgb(245, 158, 11) 100%)`;
     } else {
-      // Green, yellow to red (51-100%)
-      return `linear-gradient(90deg, 
-        rgb(34, 197, 94) 0%,
-        rgb(245, 158, 11) 30%, 
-        rgb(245, 158, 11) ${Math.max(30, (100-percentage)*1.5)}%, 
-        rgb(220, 38, 38) 100%)`;
+      return `linear-gradient(90deg, rgb(34, 197, 94) 0%, rgb(245, 158, 11) 30%, rgb(245, 158, 11) ${Math.max(30, (100-percentage)*1.5)}%, rgb(220, 38, 38) 100%)`;
     }
   };
 
-  // Function to sort disks with OS disk first
   const sortDisks = (disks: DiskInfo[]): DiskInfo[] => {
     return [...disks].sort((a, b) => {
-      // Common system disk patterns
-      const isASystemDisk = 
-        a.mount_point.toLowerCase() === 'c:\\' || 
-        a.mount_point === '/' || 
-        a.name.toLowerCase().includes('system');
-        
-      const isBSystemDisk = 
-        b.mount_point.toLowerCase() === 'c:\\' || 
-        b.mount_point === '/' || 
-        b.name.toLowerCase().includes('system');
-      
-      // Sort system disks first
+      const isASystemDisk = a.mount_point.toLowerCase() === 'c:\\' || a.mount_point === '/' || a.name.toLowerCase().includes('system');
+      const isBSystemDisk = b.mount_point.toLowerCase() === 'c:\\' || b.mount_point === '/' || b.name.toLowerCase().includes('system');
       if (isASystemDisk && !isBSystemDisk) return -1;
       if (!isASystemDisk && isBSystemDisk) return 1;
-      
-      // Then sort by name
       return a.name.localeCompare(b.name);
     });
   };
 
-  // For memory color
   const getMemoryColor = (percentage: number): string => {
-    if (percentage < 50) {
-      return '#22c55e'; // green for low usage (instead of blue)
-    } else if (percentage < 80) {
-      return '#f59e0b'; // yellow/amber for medium usage
-    } else {
-      return '#ef4444'; // red for high usage
-    }
+    if (percentage < 50) return '#22c55e';
+    if (percentage < 80) return '#f59e0b';
+    return '#ef4444';
   };
 
   useEffect(() => {
-    // Function to fetch system data
     const fetchSystemData = async () => {
       try {
-        const data = await invoke<SystemOverview>('get_system_overview');
-        
-        // Update CPU history with latest value
+        const data = await invoke<SystemOverview>('fetch_system_overview');
         setCpuHistory(prev => [...prev.slice(1), data.cpu.usage]);
-        
         setSystemData(data);
-      } catch (error) {
-        console.error('Error fetching system data:', error);
+        setError(null);
+      } catch (err: any) {
+        setError('Error fetching system data');
+        console.error('Error fetching system data:', err);
       }
     };
 
-    // Fetch initially
     fetchSystemData();
-
-    // Set up interval for real-time updates
-    const interval = setInterval(fetchSystemData, 2000); // Update every 2 seconds
-
-    // Clean up interval
+    const interval = setInterval(fetchSystemData, 2000);
     return () => clearInterval(interval);
   }, []);
 
-  // Create CPU info string
   const getCpuInfo = (): string => {
     if (!systemData) return '';
-    
-    // Return just the CPU model name
     return systemData.cpu.name;
   };
 
   return (
     <div className="overview">
       <h1 className="overview-title">OVERVIEW</h1>
-      
       <div className="overview-grid">
-        {/* Left Column - Weather and Reminder */}
         <div className="left-column">
           <WeatherWidget />
           <ReminderWidget />
         </div>
-        
-        {/* Center Column */}
         <div className="center-column">
-          {/* Memory with real-time data */}
           <CircularProgress
             title="Memory"
             percentage={systemData?.memory.percentage || 0}
             color={systemData ? getMemoryColor(systemData.memory.percentage) : '#3b82f6'}
-            centerText={systemData ? 
-              `${formatGB(systemData.memory.used)}/${formatGB(systemData.memory.total)} GB` : 
-              "Loading..."}
+            centerText={systemData ? `${formatGB(systemData.memory.used)}/${formatGB(systemData.memory.total)} GB` : "Loading..."}
             subtitle={systemData ? `(${Math.round(systemData.memory.percentage)}%)` : ""}
             className="memory"
-            hidePercentage={true}  // Add this prop to hide the percentage
+            hidePercentage={true}
           />
-          
-          {/* Disk list chart */}
           <div className="disk-list-container">
             <h3>Storage Drives</h3>
             <div className="disk-list-header">
               <span>Drive</span>
               <span>Usage</span>
             </div>
-            {systemData?.disks && sortDisks(systemData.disks).map((disk, index) => (
-              <div key={index} className="disk-item">
-                <div className="disk-name" title={`${disk.name} (${disk.mount_point})`}>
-                  {disk.name} ({disk.mount_point})
+            {error && <div style={{ color: 'red' }}>{error}</div>}
+            {systemData?.disks && systemData.disks.length > 0 ? (
+              sortDisks(systemData.disks).map((disk, index) => (
+                <div key={index} className="disk-item">
+                  <div className="disk-name" title={`${disk.name} (${disk.mount_point})`}>
+                    {disk.name} ({disk.mount_point})
+                  </div>
+                  <div className="disk-usage-bar">
+                    <div
+                      className="disk-usage-fill"
+                      style={{
+                        width: `${disk.percentage}%`,
+                        background: getUsageGradient(disk.percentage)
+                      }}
+                    ></div>
+                  </div>
+                  <div className="disk-details">
+                    {formatGB(disk.used)}/{formatGB(disk.total)} GB ({Math.round(disk.percentage)}%)
+                  </div>
                 </div>
-                <div className="disk-usage-bar">
-                  <div 
-                    className="disk-usage-fill"
-                    style={{ 
-                      width: `${disk.percentage}%`,
-                      background: getUsageGradient(disk.percentage)
-                    }}
-                  ></div>
-                </div>
-                <div className="disk-details">
-                  {formatGB(disk.used)}/{formatGB(disk.total)} GB ({Math.round(disk.percentage)}%)
-                </div>
-              </div>
-            ))}
-            {!systemData?.disks.length && <div>No disk information available</div>}
+              ))
+            ) : (
+              <div>No disk information available</div>
+            )}
           </div>
         </div>
-        
-        {/* Right Column */}
         <div className="right-column">
           <PerformanceChart
             title="CPU"
             percentage={systemData?.cpu.usage || 0}
             color="#EF4444"
-            data={cpuHistory} 
+            data={cpuHistory}
             className="cpu"
-            info={getCpuInfo()} // Will show cores and threads at the bottom
+            info={getCpuInfo()}
           />
-          
           <PerformanceChart
             title="WIFI"
             percentage={89}
@@ -203,7 +155,6 @@ const Overview: React.FC = () => {
             data={wifiData}
             className="wifi"
           />
-          
           <PerformanceChart
             title="GPU 0"
             percentage={12}
@@ -211,7 +162,6 @@ const Overview: React.FC = () => {
             data={gpu0Data}
             className="gpu-0"
           />
-          
           <PerformanceChart
             title="GPU 1"
             percentage={7}
