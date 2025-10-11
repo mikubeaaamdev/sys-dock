@@ -163,13 +163,6 @@
   animation: pulse 2s infinite ease-in-out;
 }
 
-/* Remove these static classes as we'll use dynamic styles instead */
-.disk-usage-low,
-.disk-usage-medium,
-.disk-usage-high {
-  /* These will be replaced with inline styles */
-}
-
 /* Add keyframe animation for subtle pulsing effect */
 @keyframes pulse {
   0% { opacity: 0.9; }

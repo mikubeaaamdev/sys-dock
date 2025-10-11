@@ -11,19 +11,22 @@ import {
 } from '../assets/icons';
 import './Sidebar.css';
 import { useSidebar } from '../context/SidebarContext';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const Sidebar: React.FC = () => {
   const { isExpanded, toggleSidebar } = useSidebar();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const menuItems = [
-    { icon: HomeIcon, label: 'Overview', active: true },
-    { icon: GridIcon, label: 'Analytics', active: false },
-    { icon: ActivityIcon, label: 'Monitor', active: false },
-    { icon: ProcessIcon, label: 'Processes', active: false },
-    { icon: StarIcon, label: 'Favorites', active: false },
-    { icon: WeatherIcon, label: 'Weather', active: false },
-    { icon: DocumentIcon, label: 'Logs', active: false },
-    { icon: SettingsIcon, label: 'Settings', active: false },
+    { icon: HomeIcon, label: 'Overview', route: '/' },
+    { icon: GridIcon, label: 'Performance', route: '/performance' },
+    { icon: ActivityIcon, label: 'Monitor', route: '/monitor' },
+    { icon: ProcessIcon, label: 'Processes', route: '/processes' },
+    { icon: StarIcon, label: 'Favorites', route: '/favorites' },
+    { icon: WeatherIcon, label: 'Weather', route: '/weather' },
+    { icon: DocumentIcon, label: 'Logs', route: '/logs' },
+    { icon: SettingsIcon, label: 'Settings', route: '/settings' },
   ];
 
   return (
@@ -37,8 +40,14 @@ const Sidebar: React.FC = () => {
       <div className="sidebar-menu">
         {menuItems.map((item, index) => {
           const IconComponent = item.icon;
+          const isActive = location.pathname === item.route;
           return (
-            <div key={index} className={`menu-item ${item.active ? 'active' : ''}`}>
+            <div 
+              key={index} 
+              className={`menu-item${isActive ? ' active' : ''}`}
+              onClick={() => navigate(item.route)}
+              style={{ cursor: 'pointer' }}
+            >
               <IconComponent className="menu-icon" />
               {isExpanded && <span className="menu-label">{item.label}</span>}
             </div>
