@@ -103,8 +103,8 @@
 
 .perf-composition-bar, .memory-composition-bar, .disk-composition-bar, .gpu-composition-bar {
   background: #ff6f47;
-  height: 28px;
-  border-radius: 14px;
+  height: 14px; /* Smaller height */
+  border-radius: 7px;
   margin-top: 0.5rem;
   width: 100%;
   margin-bottom: 1rem;
@@ -161,19 +161,14 @@
 }
 
 .memory-composition-bar-outer {
-  width: 100%;
-  background: #f5f5f5;
-  border-radius: 16px;
-  height: 32px;
-  margin-bottom: 1rem;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
+  height: 14px;
+  border-radius: 7px;
 }
 
-.memory-composition-bar {
-  background: #ff6f47;
+.memory-composition-bar,
+.perf-composition-bar,
+.disk-composition-bar,
+.gpu-composition-bar {
   height: 100%;
-  border-radius: 16px 0 0 16px;
-  transition: width 0.5s cubic-bezier(.4,2,.3,1);
+  border-radius: 7px 0 0 7px;
 }

@@ -1,0 +1,76 @@
+.processes-container {
+  padding: 0;
+  margin: 0;
+  width: 90vw;
+  height: 90vh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  background: #fff;
+  color: #222;
+}
+
+.processes-table-wrapper {
+  flex: 1;
+  width: 50%;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.processes-table-scroll {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding-right: 4px;
+  box-sizing: border-box;
+}
+
+.processes-table {
+  width: 100%;
+  height: 100%;
+  border-collapse: collapse;
+  background: #f8f9fa; /* Off-white */
+  color: #222;
+  font-size: 15px;
+  table-layout: fixed;
+  border-radius: 16px;           /* Smoother corners */
+  border: 3px solid #bdbdbd;     /* More noticeable border */
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  overflow: hidden;            /* Ensures corners are clipped */
+}
+
+.processes-table th,
+.processes-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+}
+
+.processes-table th {
+  cursor: pointer;
+  background: #f5f5f5;
+  user-select: none;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.processes-table tr:hover {
+  background: #eaeaea;
+}
+
+.process-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background: #ddd;
+  object-fit: contain;
+  display: block;
+}

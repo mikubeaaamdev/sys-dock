@@ -21,8 +21,8 @@ const Sidebar: React.FC = () => {
   const menuItems = [
     { icon: HomeIcon, label: 'Overview', route: '/' },
     { icon: GridIcon, label: 'Performance', route: '/performance' },
-    { icon: ActivityIcon, label: 'Monitor', route: '/monitor' },
-    { icon: ProcessIcon, label: 'Processes', route: '/processes' },
+    { icon: ProcessIcon, label: 'Processes', route: '/processes' }, // <-- moved up
+    { icon: ActivityIcon, label: 'Monitor', route: '/monitor' },    // <-- moved down
     { icon: StarIcon, label: 'Favorites', route: '/favorites' },
     { icon: WeatherIcon, label: 'Weather', route: '/weather' },
     { icon: DocumentIcon, label: 'Logs', route: '/logs' },

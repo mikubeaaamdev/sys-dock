@@ -5,6 +5,7 @@ import Sidebar from './components/Sidebar';
 import './App.css';
 import { SidebarProvider } from './context/SidebarContext';
 import Performance from './components/Performance';
+import Processes from './components/Processes';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Overview />} />
             <Route path="/performance" element={<Performance />} />
+            <Route path="/processes" element={<Processes />} />
             {/* Add other routes as needed */}
           </Routes>
         </Layout>

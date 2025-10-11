@@ -13,9 +13,11 @@
     "windows": [
       {
         "title": "SysDock",
-        "width": 800,
-        "height": 600,
-        "resizable": true
+        "width": 1200,
+        "height": 800,
+        "resizable": true,
+        "fullscreen": false,
+        "maximized": true
       }
     ],
     "security": {
