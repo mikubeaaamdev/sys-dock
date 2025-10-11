@@ -42,13 +42,6 @@ const Overview: React.FC = () => {
 
   const formatGB = (bytes: number) => (bytes / (1024 * 1024 * 1024)).toFixed(1);
 
-  const getUsageGradient = (percentage: number): string => {
-    if (percentage <= 50) {
-      return `linear-gradient(90deg, rgba(39, 195, 96, 1) 0%, rgb(34, 197, 94) ${(50-percentage)*2}%, rgb(245, 158, 11) 100%)`;
-    } else {
-      return `linear-gradient(90deg, rgb(34, 197, 94) 0%, rgb(245, 158, 11) 30%, rgb(245, 158, 11) ${Math.max(30, (100-percentage)*1.5)}%, rgb(220, 38, 38) 100%)`;
-    }
-  };
 
   const sortDisks = (disks: DiskInfo[]): DiskInfo[] => {
     return [...disks].sort((a, b) => {
@@ -117,15 +110,12 @@ const Overview: React.FC = () => {
             {systemData?.disks && systemData.disks.length > 0 ? (
               sortDisks(systemData.disks).map((disk, index) => (
                 <div key={index} className="disk-item">
-                  <div className="disk-name" title={`${disk.name} (${disk.mount_point})`}>
-                    {disk.name} ({disk.mount_point})
-                  </div>
+                  <div className="disk-name">{disk.name} ({disk.mount_point})</div>
                   <div className="disk-usage-bar">
                     <div
                       className="disk-usage-fill"
                       style={{
-                        width: `${disk.percentage}%`,
-                        background: getUsageGradient(disk.percentage)
+                        width: `${disk.percentage > 2 ? disk.percentage : 2}%`
                       }}
                     ></div>
                   </div>

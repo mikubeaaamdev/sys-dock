@@ -16,7 +16,7 @@ const Performance: React.FC = () => {
         if (result.cpu) setCpu(result.cpu);
         if (result.memory) setMemory(result.memory);
         if (result.disks) setDisks(result.disks);
-        // If you add GPU info to Rust, setGpu(result.gpu);
+        if (result.gpu) setGpu(result.gpu);
       } catch (e) {
         console.error(e);
       }
@@ -49,61 +49,211 @@ const Performance: React.FC = () => {
         ))}
       </div>
       <div className="performance-content">
+        {/* CPU Section */}
         {activeTab === 'cpu' && (
           <div className="perf-section">
-            <div className="perf-chart">
-              <SimpleChart data={[cpu.usage ?? 0]} color="#EF4444" />
+            <div className="perf-left cpu-left">
+              <div className="perf-title">CPU</div>
+              <div className="perf-circle">
+                <svg width="120" height="120">
+                  <circle cx="60" cy="60" r="54" stroke="#fff" strokeWidth="8" fill="none" />
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="54"
+                    stroke="#ff6b6b"
+                    strokeWidth="8"
+                    fill="none"
+                    strokeDasharray={2 * Math.PI * 54}
+                    strokeDashoffset={2 * Math.PI * 54 * (1 - (cpu.usage ?? 0) / 100)}
+                    style={{ transition: 'stroke-dashoffset 0.5s' }}
+                  />
+                </svg>
+                <div className="perf-circle-text">
+                  {Math.round(cpu.usage ?? 0)}%<br />
+                  Usage
+                </div>
+              </div>
+              <div className="perf-details">
+                <div>Name: <span>{cpu.name ?? 'N/A'}</span></div>
+                <div>Cores: <span>{cpu.cores ?? 'N/A'}</span></div>
+                <div>Frequency: <span>{cpu.frequency ?? 'N/A'} MHz</span></div>
+              </div>
             </div>
-            <div className="perf-info">
-              <div><strong>Name:</strong> {cpu.name}</div>
-              <div><strong>Cores:</strong> {cpu.cores}</div>
-              <div><strong>Usage:</strong> {Math.round(cpu.usage ?? 0)}%</div>
+            <div className="perf-right cpu-right">
+              <div className="perf-usage-title">CPU Usage</div>
+              <div className="perf-graph-container">
+                <SimpleChart data={[cpu.usage ?? 0]} color="#ff6b6b" />
+                <div className="perf-graph-label">60 seconds</div>
+              </div>
+              <div className="perf-composition-title">Core Composition</div>
+              <div className="perf-composition-bar"></div>
+              {/* Add more CPU hardware details if available */}
             </div>
           </div>
         )}
+        {/* MEMORY Section */}
         {activeTab === 'memory' && (
-          <div className="perf-section">
-            <div className="perf-chart">
-              <SimpleChart data={[memory.percentage ?? 0]} color="#22c55e" />
+          <div className="memory-section">
+            <div className="memory-left">
+              <div className="memory-title">Memory</div>
+              <div className="memory-circle">
+                <svg width="120" height="120">
+                  <circle cx="60" cy="60" r="54" stroke="#fff" strokeWidth="8" fill="none" />
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="54"
+                    stroke="#22c55e"
+                    strokeWidth="8"
+                    fill="none"
+                    strokeDasharray={2 * Math.PI * 54}
+                    strokeDashoffset={2 * Math.PI * 54 * (1 - (memory.percentage ?? 0) / 100)}
+                    style={{ transition: 'stroke-dashoffset 0.5s' }}
+                  />
+                </svg>
+                <div className="memory-circle-text">
+                  {((memory.used ?? 0) / 1024 / 1024 / 1024).toFixed(1)} / {((memory.total ?? 0) / 1024 / 1024 / 1024).toFixed(1)} GB<br />
+                  ({Math.round(memory.percentage ?? 0)}%)
+                </div>
+              </div>
+              {/* Stats in two columns */}
+              <div className="memory-stats-grid">
+                <div className="memory-stats-left">
+                  <div>
+                    In Use (Compressed): <strong>10.4 GB (535 MB)</strong>
+                  </div>
+                  <div>
+                    Committed: <strong>14.2 / 18.3 GB</strong>
+                  </div>
+                  <div>
+                    Cached: <strong>5.3 GB</strong>
+                  </div>
+                  <div>
+                    Paged Pool <strong>468 MB</strong>
+                  </div>
+                  <div>
+                    Non-paged Pool <strong>460 MB</strong>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="perf-info">
-              <div><strong>Total:</strong> {Math.round((memory.total ?? 0) / 1024 / 1024)} MB</div>
-              <div><strong>Used:</strong> {Math.round((memory.used ?? 0) / 1024 / 1024)} MB</div>
-              <div><strong>Available:</strong> {Math.round((memory.available ?? 0) / 1024 / 1024)} MB</div>
-              <div><strong>Usage:</strong> {Math.round(memory.percentage ?? 0)}%</div>
+            <div className="memory-right">
+              <div className="memory-usage-title">Memory Usage</div>
+              <div className="memory-graph-container">
+                <SimpleChart data={[memory.percentage ?? 0]} color="#EF4444" />
+                <div className="memory-graph-label">60 seconds</div>
+              </div>
+              <div>Memory Composition</div>
+              <div className="memory-composition-bar-outer">
+                <div
+                  className="memory-composition-bar"
+                  style={{
+                    width: `${memory.percentage ?? 0}%`
+                  }}
+                ></div>
+              </div>
+              <div className="memory-hardware-details">
+                <div>Speed: <span>2400 MHz</span></div>
+                <div>Slots Used: <span>2 of 4</span></div>
+                <div>Form Factor: <span>DIMM</span></div>
+                <div>Hardware Reserved: <span>125 MB</span></div>
+              </div>
             </div>
           </div>
         )}
+        {/* DISKS Section */}
         {activeTab === 'disks' && (
-          <div className="perf-section">
+          <div className="disk-section">
             {disks.length === 0 ? (
-              <div>No disk information available</div>
+              <div className="disk-left">
+                <div className="disk-title">No disk information available</div>
+              </div>
             ) : (
-              disks.map((disk, idx) => (
-                <div key={disk.name + disk.mount_point} className="disk-info-block">
-                  <div className="disk-title">{disk.name} ({disk.mount_point})</div>
-                  <SimpleChart data={[disk.percentage]} color="#3B82F6" />
-                  <div className="perf-info">
-                    <div><strong>Total:</strong> {Math.round(disk.total / 1024 / 1024)} MB</div>
-                    <div><strong>Used:</strong> {Math.round(disk.used / 1024 / 1024)} MB</div>
-                    <div><strong>Available:</strong> {Math.round(disk.available / 1024 / 1024)} MB</div>
-                    <div><strong>Usage:</strong> {Math.round(disk.percentage)}%</div>
+              disks.map((disk) => (
+                <div key={disk.name + disk.mount_point} className="disk-row">
+                  <div className="disk-left">
+                    <div className="disk-title">{disk.name} ({disk.mount_point})</div>
+                    <div className="disk-circle">
+                      <svg width="120" height="120">
+                        <circle cx="60" cy="60" r="54" stroke="#fff" strokeWidth="8" fill="none" />
+                        <circle
+                          cx="60"
+                          cy="60"
+                          r="54"
+                          stroke="#3B82F6"
+                          strokeWidth="8"
+                          fill="none"
+                          strokeDasharray={2 * Math.PI * 54}
+                          strokeDashoffset={2 * Math.PI * 54 * (1 - (disk.percentage ?? 0) / 100)}
+                          style={{ transition: 'stroke-dashoffset 0.5s' }}
+                        />
+                      </svg>
+                      <div className="disk-circle-text">
+                        {Math.round(disk.percentage)}%<br />
+                        Used
+                      </div>
+                    </div>
+                    <div className="disk-details">
+                      <div>Total: <span>{Math.round(disk.total / 1024 / 1024)} MB</span></div>
+                      <div>Used: <span>{Math.round(disk.used / 1024 / 1024)} MB</span></div>
+                      <div>Available: <span>{Math.round(disk.available / 1024 / 1024)} MB</span></div>
+                    </div>
+                  </div>
+                  <div className="disk-right">
+                    <div className="disk-usage-title">Disk Usage</div>
+                    <div className="disk-graph-container">
+                      <SimpleChart data={[disk.percentage]} color="#3B82F6" />
+                      <div className="disk-graph-label">60 seconds</div>
+                    </div>
+                    <div>Disk Composition</div>
+                    <div className="disk-composition-bar"></div>
+                    {/* Add more disk hardware details if available */}
                   </div>
                 </div>
               ))
             )}
           </div>
         )}
+        {/* GPU Section */}
         {activeTab === 'gpu' && (
-          <div className="perf-section">
-            <div className="perf-chart">
-              {/* Replace with real GPU data if available */}
-              <SimpleChart data={[gpu.usage ?? 0]} color="#F59E0B" />
+          <div className="gpu-section">
+            <div className="gpu-left">
+              <div className="gpu-title">GPU</div>
+              <div className="gpu-circle">
+                <svg width="120" height="120">
+                  <circle cx="60" cy="60" r="54" stroke="#fff" strokeWidth="8" fill="none" />
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="54"
+                    stroke="#F59E0B"
+                    strokeWidth="8"
+                    fill="none"
+                    strokeDasharray={2 * Math.PI * 54}
+                    strokeDashoffset={2 * Math.PI * 54 * (1 - (gpu.usage ?? 0) / 100)}
+                    style={{ transition: 'stroke-dashoffset 0.5s' }}
+                  />
+                </svg>
+                <div className="gpu-circle-text">
+                  {Math.round(gpu.usage ?? 0)}%<br />
+                  Usage
+                </div>
+              </div>
+              <div className="gpu-details">
+                <div>Name: <span>{gpu.name ?? 'N/A'}</span></div>
+                {/* Add more GPU info if available */}
+              </div>
             </div>
-            <div className="perf-info">
-              <div><strong>Name:</strong> {gpu.name ?? 'N/A'}</div>
-              <div><strong>Usage:</strong> {Math.round(gpu.usage ?? 0)}%</div>
-              {/* Add more GPU info as available */}
+            <div className="gpu-right">
+              <div className="gpu-usage-title">GPU Usage</div>
+              <div className="gpu-graph-container">
+                <SimpleChart data={[gpu.usage ?? 0]} color="#F59E0B" />
+                <div className="gpu-graph-label">60 seconds</div>
+              </div>
+              <div>GPU Composition</div>
+              <div className="gpu-composition-bar"></div>
+              {/* Add more GPU hardware details if available */}
             </div>
           </div>
         )}

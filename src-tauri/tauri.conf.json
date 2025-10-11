@@ -12,9 +12,10 @@
   "app": {
     "windows": [
       {
-        "title": "sys-dock",
+        "title": "SysDock",
         "width": 800,
-        "height": 600
+        "height": 600,
+        "resizable": true
       }
     ],
     "security": {
