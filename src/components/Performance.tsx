@@ -4,19 +4,70 @@ import './Performance.css';
 
 const Performance: React.FC = () => {
   const [activeTab, setActiveTab] = useState('memory');
-  const [cpu, setCpu] = useState<{ name?: string; usage?: number; frequency?: number; cores?: number }>({});
+  const [cpu, setCpu] = useState<{
+    name?: string;
+    usage?: number;
+    frequency?: number;
+    cores?: number;
+    processes?: number;
+    threads?: number;
+    handles?: number;
+    uptime?: number;
+    l1_cache?: number;
+    l2_cache?: number;
+    l3_cache?: number;
+  }>({});
   const [memory, setMemory] = useState<{ total?: number; used?: number; available?: number; percentage?: number }>({});
   const [disks, setDisks] = useState<any[]>([]);
   const [gpu, setGpu] = useState<any>({});
+
+  const [cpuHistory, setCpuHistory] = useState<number[]>([]);
+  const [memoryHistory, setMemoryHistory] = useState<number[]>([]);
+  const [diskHistory, setDiskHistory] = useState<{ [key: string]: number[] }>({});
+  const [gpuHistory, setGpuHistory] = useState<number[]>([]);
 
   useEffect(() => {
     const fetchSystemInfo = async () => {
       try {
         const result = await invoke<any>('fetch_system_overview');
-        if (result.cpu) setCpu(result.cpu);
-        if (result.memory) setMemory(result.memory);
-        if (result.disks) setDisks(result.disks);
-        if (result.gpu) setGpu(result.gpu);
+        if (result.cpu) {
+          setCpu(result.cpu);
+          setCpuHistory(h =>
+            h.length === 0
+              ? Array(60).fill(result.cpu.usage ?? 0) // fill with first value
+              : [...h.slice(-59), result.cpu.usage ?? 0]
+          );
+        }
+        if (result.memory) {
+          setMemory(result.memory);
+          setMemoryHistory(h =>
+            h.length === 0
+              ? Array(60).fill(result.memory.percentage ?? 0)
+              : [...h.slice(-59), result.memory.percentage ?? 0]
+          );
+        }
+        if (result.disks) {
+          setDisks(result.disks);
+          setDiskHistory(prev => {
+            const updated: { [key: string]: number[] } = { ...prev };
+            result.disks.forEach((disk: any) => {
+              const key = disk.name + disk.mount_point;
+              updated[key] =
+                (updated[key]?.length ?? 0) === 0
+                  ? Array(60).fill(disk.percentage ?? 0)
+                  : [...(updated[key] || []).slice(-59), disk.percentage ?? 0];
+            });
+            return updated;
+          });
+        }
+        if (result.gpu) {
+          setGpu(result.gpu);
+          setGpuHistory(h =>
+            h.length === 0
+              ? Array(60).fill(result.gpu.usage ?? 0)
+              : [...h.slice(-59), result.gpu.usage ?? 0]
+          );
+        }
       } catch (e) {
         console.error(e);
       }
@@ -75,15 +126,22 @@ const Performance: React.FC = () => {
                 </div>
               </div>
               <div className="perf-details">
-                <div>Name: <span>{cpu.name ?? 'N/A'}</span></div>
+                <div>Utilization: <span>{Math.round(cpu.usage ?? 0)}%</span></div>
+                <div>Speed: <span>{cpu.frequency ?? 'N/A'} MHz</span></div>
                 <div>Cores: <span>{cpu.cores ?? 'N/A'}</span></div>
-                <div>Frequency: <span>{cpu.frequency ?? 'N/A'} MHz</span></div>
+                <div>Processes: <span>{cpu.processes !== undefined ? cpu.processes : 'N/A'}</span></div>
+                <div>Threads: <span>{cpu.threads !== undefined ? cpu.threads : 'N/A'}</span></div>
+                <div>Handles: <span>{cpu.handles && cpu.handles > 0 ? cpu.handles : 'N/A'}</span></div>
+                <div>Uptime: <span>{cpu.uptime !== undefined ? `${Math.floor(cpu.uptime / 3600)}h ${Math.floor((cpu.uptime % 3600) / 60)}m` : 'N/A'}</span></div>
+                <div>L1 Cache: <span>{cpu.l1_cache && cpu.l1_cache > 0 ? cpu.l1_cache : 'N/A'} KB</span></div>
+                <div>L2 Cache: <span>{cpu.l2_cache && cpu.l2_cache > 0 ? cpu.l2_cache : 'N/A'} KB</span></div>
+                <div>L3 Cache: <span>{cpu.l3_cache && cpu.l3_cache > 0 ? cpu.l3_cache : 'N/A'} KB</span></div>
               </div>
             </div>
             <div className="perf-right cpu-right">
               <div className="perf-usage-title">CPU Usage</div>
               <div className="perf-graph-container">
-                <SimpleChart data={[cpu.usage ?? 0]} color="#ff6b6b" />
+                <SimpleChart data={cpuHistory} color="#ff6b6b" size="large" />
                 <div className="perf-graph-label">60 seconds</div>
               </div>
               <div className="perf-composition-title">Core Composition</div>
@@ -141,7 +199,7 @@ const Performance: React.FC = () => {
             <div className="memory-right">
               <div className="memory-usage-title">Memory Usage</div>
               <div className="memory-graph-container">
-                <SimpleChart data={[memory.percentage ?? 0]} color="#EF4444" />
+                <SimpleChart data={memoryHistory} color="#EF4444" size="large" />
                 <div className="memory-graph-label">60 seconds</div>
               </div>
               <div>Memory Composition</div>
@@ -173,7 +231,12 @@ const Performance: React.FC = () => {
               disks.map((disk) => (
                 <div key={disk.name + disk.mount_point} className="disk-row">
                   <div className="disk-left">
-                    <div className="disk-title">{disk.name} ({disk.mount_point})</div>
+                    <div className="disk-title">
+                      {disk.mount_point === "C:\\" ? "Local Disk C:" : `${disk.name} (${disk.mount_point})`}
+                    </div>
+                    <div className="disk-brand-type">
+                      {disk.brand ? disk.brand : ""} {disk.type_ ? disk.type_ : ""}
+                    </div>
                     <div className="disk-circle">
                       <svg width="120" height="120">
                         <circle cx="60" cy="60" r="54" stroke="#fff" strokeWidth="8" fill="none" />
@@ -203,11 +266,15 @@ const Performance: React.FC = () => {
                   <div className="disk-right">
                     <div className="disk-usage-title">Disk Usage</div>
                     <div className="disk-graph-container">
-                      <SimpleChart data={[disk.percentage]} color="#3B82F6" />
-                      <div className="disk-graph-label">60 seconds</div>
+                      <SimpleChart
+                        data={diskHistory[disk.name + disk.mount_point] || []}
+                        color="#3B82F6"
+                        size="small"
+                      />
                     </div>
-                    <div>Disk Composition</div>
-                    <div className="disk-composition-bar"></div>
+                    <div className="disk-graph-label">60 seconds</div>
+                    {/* <div>Disk Composition</div>
+                    <div className="disk-composition-bar"></div> */}
                     {/* Add more disk hardware details if available */}
                   </div>
                 </div>
@@ -248,7 +315,7 @@ const Performance: React.FC = () => {
             <div className="gpu-right">
               <div className="gpu-usage-title">GPU Usage</div>
               <div className="gpu-graph-container">
-                <SimpleChart data={[gpu.usage ?? 0]} color="#F59E0B" />
+                <SimpleChart data={gpuHistory} color="#F59E0B" size="large" />
                 <div className="gpu-graph-label">60 seconds</div>
               </div>
               <div>GPU Composition</div>
@@ -262,17 +329,53 @@ const Performance: React.FC = () => {
   );
 };
 
-function SimpleChart({ data, color }: { data: number[]; color: string }) {
-  const points = data.map((v, i) => `${i * 10},${100 - v}`).join(' ');
+function SimpleChart({ data, color, size = "large" }: { data: number[]; color: string; size?: "large" | "small" }) {
+  const width = size === "large" ? 1000 : 220;
+  const height = size === "large" ? 500 : 80;
+  const gridX = size === "large" ? 12 : 6;
+  const gridY = size === "large" ? 6 : 4;
+
+  const chartData = data.slice(-60);
+  const points = chartData.map((v, i) => `${(i / 59) * width},${height - (v / 100) * height}`).join(' ');
+  const areaPoints = `${chartData.map((v, i) => `${(i / 59) * width},${height - (v / 100) * height}`).join(' ')} ${width},${height} 0,${height}`;
+
   return (
-    <svg width="160" height="100">
+    <svg width={width} height={height} style={{ background: "#f8f9fa", borderRadius: 8 }}>
+      {/* Grid */}
+      {[...Array(gridX)].map((_, i) => (
+        <line
+          key={`vx${i}`}
+          x1={(i / (gridX - 1)) * width}
+          y1={0}
+          x2={(i / (gridX - 1)) * width}
+          y2={height}
+          stroke="#e5e7eb"
+          strokeWidth={1}
+        />
+      ))}
+      {[...Array(gridY)].map((_, i) => (
+        <line
+          key={`hz${i}`}
+          x1={0}
+          y1={(i / (gridY - 1)) * height}
+          x2={width}
+          y2={(i / (gridY - 1)) * height}
+          stroke="#e5e7eb"
+          strokeWidth={1}
+        />
+      ))}
+      {/* Area fill */}
+      <polygon
+        points={areaPoints}
+        fill={color + "22"}
+      />
+      {/* Line */}
       <polyline
         fill="none"
         stroke={color}
-        strokeWidth="3"
+        strokeWidth="2"
         points={points}
       />
-      <line x1="0" y1="100" x2="160" y2="100" stroke="#ccc" />
     </svg>
   );
 }
