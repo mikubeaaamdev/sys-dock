@@ -2,11 +2,12 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use serde::Serialize;
-use sysinfo::{System, SystemExt, CpuExt, DiskExt, ProcessExt};
+use sysinfo::{NetworkExt, System, SystemExt, CpuExt, DiskExt, ProcessExt};
 #[cfg(target_os = "windows")]
 use wmi::{COMLibrary, WMIConnection};
 #[cfg(target_os = "windows")]
 use serde::Deserialize;
+use get_if_addrs::{get_if_addrs, IfAddr, Ifv4Addr, Ifv6Addr}; // Add this
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
@@ -76,6 +77,22 @@ struct ProcessInfo {
     icon: Option<String>, // base64 PNG string or None
 }
 
+#[derive(Serialize)]
+struct NetworkInterface {
+    name: String,
+    status: String,
+    bytes_received: u64,
+    bytes_transmitted: u64,
+    ip_addresses: Vec<String>,      // NEW
+    mac_address: Option<String>,    // NEW
+    interface_type: Option<String>, // NEW
+}
+
+#[derive(Serialize)]
+struct NetworkInfo {
+    interfaces: Vec<NetworkInterface>,
+}
+
 // If you plan to use AppState for process sampling,
 // you can define and use it in your Tauri app as needed.
 
@@ -85,6 +102,10 @@ fn fetch_system_overview() -> SystemOverview {
     sys.refresh_disks_list();
     sys.refresh_disks();
     sys.refresh_all();
+
+    // Wait a short time and refresh CPU again for accurate usage
+    std::thread::sleep(std::time::Duration::from_millis(100));
+    sys.refresh_cpu();
 
     // Memory
     let total_memory = sys.total_memory();
@@ -190,13 +211,76 @@ fn extract_icon_base64(_exe_path: &str) -> Result<String, ()> {
     Err(())
 }
 
+#[tauri::command]
+fn fetch_network_info() -> NetworkInfo {
+    let mut sys = System::new_all();
+    sys.refresh_networks_list();
+    sys.refresh_networks();
+
+    let mut interfaces = Vec::new();
+
+    // Collect IPs, MAC, and type using get_if_addrs
+    let if_addrs = get_if_addrs().unwrap_or_default();
+
+    for (name, data) in sys.networks() {
+        let status = if data.received() > 0 || data.transmitted() > 0 {
+            "Connected".to_string()
+        } else {
+            "Disconnected".to_string()
+        };
+
+        // Find matching interface info
+        let mut ip_addresses = Vec::new();
+        let mac_address: Option<String> = None;
+        let interface_type: Option<String> = None;
+
+        for iface in &if_addrs {
+            if iface.name == *name {
+                match &iface.addr {
+                    IfAddr::V4(Ifv4Addr { ip, .. }) => ip_addresses.push(ip.to_string()),
+                    IfAddr::V6(Ifv6Addr { ip, .. }) => ip_addresses.push(ip.to_string()),
+                }
+                // MAC and interface_type not available from get_if_addrs
+            }
+        }
+
+        interfaces.push(NetworkInterface {
+            name: name.to_string(),
+            status,
+            bytes_received: data.received(),
+            bytes_transmitted: data.transmitted(),
+            ip_addresses,
+            mac_address,         // Not available
+            interface_type,      // Not available
+        });
+    }
+
+    NetworkInfo { interfaces }
+}
+
+#[tauri::command]
+fn end_process(pid: i32) -> Result<(), String> {
+    let mut sys = System::new_all();
+    sys.refresh_processes();
+    let sys_pid = sysinfo::Pid::from(pid as usize);
+    if let Some(process) = sys.process(sys_pid) {
+        process.kill();
+        Ok(())
+    } else {
+        // Treat "not found" as success (already ended)
+        Ok(())
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             greet,
             fetch_system_overview,
-            fetch_processes
+            fetch_processes,
+            fetch_network_info,
+            end_process // <-- Add this line
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

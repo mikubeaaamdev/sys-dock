@@ -122,7 +122,11 @@ const Processes: React.FC = () => {
         await invoke("end_process", { pid: confirmEnd.pid });
         setLastEnded(confirmEnd.name);
       } catch (err) {
-        alert("Failed to end process: " + err);
+        if (typeof err === "string" && err.includes("not found")) {
+          setLastEnded(confirmEnd.name); // treat as success
+        } else {
+          alert("Failed to end process: " + err);
+        }
       }
       setConfirmEnd(null);
     }

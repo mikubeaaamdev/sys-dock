@@ -26,6 +26,7 @@ const Performance: React.FC = () => {
   const [memory, setMemory] = useState<{ total?: number; used?: number; available?: number; percentage?: number }>({});
   const [disks, setDisks] = useState<any[]>([]);
   const [gpu, setGpu] = useState<any>({});
+  const [networkInfo, setNetworkInfo] = useState<{ interfaces?: any[] }>({});
 
   const [cpuHistory, setCpuHistory] = useState<number[]>([]);
   const [memoryHistory, setMemoryHistory] = useState<number[]>([]);
@@ -85,6 +86,20 @@ const Performance: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    const fetchNetwork = async () => {
+      try {
+        const result = await invoke<any>('fetch_network_info');
+        setNetworkInfo(result);
+      } catch (e) {
+        setNetworkInfo({ interfaces: [] });
+      }
+    };
+    fetchNetwork();
+    const interval = setInterval(fetchNetwork, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Save tab on change
   useEffect(() => {
     localStorage.setItem('performanceTab', activeTab);
@@ -114,7 +129,8 @@ const Performance: React.FC = () => {
     { key: 'cpu', label: 'CPU' },
     { key: 'memory', label: 'MEMORY' },
     { key: 'disks', label: 'DISKS' },
-    { key: 'gpu', label: 'GPU' }
+    { key: 'gpu', label: 'GPU' },
+    { key: 'network', label: 'NETWORK' } // <-- Add this tab
   ];
 
   return (
@@ -321,7 +337,7 @@ const Performance: React.FC = () => {
                   </div>
                 </div>
               ))
-            )}
+           )}
           </div>
         )}
         {/* GPU Section */}
@@ -364,6 +380,40 @@ const Performance: React.FC = () => {
               <div className="gpu-composition-bar"></div>
               {/* Add more GPU hardware details if available */}
             </div>
+          </div>
+        )}
+        {/* NETWORK Section */}
+        {activeTab === 'network' && (
+          <div className="network-section">
+            <h2>Network Interfaces</h2>
+            <table className="network-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Status</th>
+                  <th>Bytes Received</th>
+                  <th>Bytes Sent</th>
+                  <th>IP Address</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(networkInfo.interfaces ?? []).map((iface, idx) => (
+                  <tr key={idx}>
+                    <td>{iface.name}</td>
+                    <td>
+                      <span className={iface.status === "Connected" ? "status-connected" : "status-disconnected"}>
+                        {iface.status}
+                      </span>
+                    </td>
+                    <td>{iface.bytes_received}</td>
+                    <td>{iface.bytes_transmitted}</td>
+                    <td>
+                      <IpCell ip_addresses={iface.ip_addresses ?? []} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
@@ -419,6 +469,21 @@ function SimpleChart({ data, color, size = "large" }: { data: number[]; color: s
         points={points}
       />
     </svg>
+  );
+}
+
+function IpCell({ ip_addresses }: { ip_addresses: string[] }) {
+  const [revealed, setRevealed] = useState(false);
+  return (
+    <span
+      style={{ color: revealed ? "#222" : "#bbb", fontStyle: revealed ? "normal" : "italic", cursor: "pointer" }}
+      title={revealed ? "" : "Click to reveal"}
+      onClick={() => setRevealed(true)}
+    >
+      {revealed
+        ? (ip_addresses && ip_addresses.length > 0 ? ip_addresses.join(', ') : "N/A")
+        : "Hidden for privacy"}
+    </span>
   );
 }
 
