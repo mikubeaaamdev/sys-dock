@@ -5,6 +5,7 @@ import CircularProgress from './widgets/CircularProgress';
 import PerformanceChart from './widgets/PerformanceChart';
 import ReminderWidget from './widgets/ReminderWidget';
 import './Overview.css';
+import { useAlert } from '../context/AlertContext';
 
 interface DiskInfo {
   name: string;
@@ -34,6 +35,7 @@ const Overview: React.FC = () => {
   const [systemData, setSystemData] = useState<SystemOverview | null>(null);
   const [cpuHistory, setCpuHistory] = useState<number[]>(Array(16).fill(0));
   const [error, setError] = useState<string | null>(null);
+  const { setAlert } = useAlert();
 
   // Sample data for charts that don't have real-time data yet
   const wifiData = [70, 80, 85, 90, 85, 88, 92, 89, 85, 88, 90, 95, 92, 88, 85, 89];
@@ -76,6 +78,21 @@ const Overview: React.FC = () => {
     const interval = setInterval(fetchSystemData, 2000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    // Add alert logic after fetching data
+    if (systemData) {
+      if ((systemData.cpu.usage ?? 0) > 90) {
+        setAlert("High CPU usage!");
+      } else if ((systemData.memory.percentage ?? 0) > 90) {
+        setAlert("Memory critically low!");
+      } else if (systemData.disks.some(disk => (disk.percentage ?? 0) > 95)) {
+        setAlert("Disk space critically low!");
+      } else {
+        setAlert(null);
+      }
+    }
+  }, [systemData, setAlert]);
 
   const getCpuInfo = (): string => {
     if (!systemData) return '';

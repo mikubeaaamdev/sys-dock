@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { useLocation } from 'react-router-dom'; // Add this import
+import { useAlert } from '../context/AlertContext';
 import './Performance.css';
 
 const Performance: React.FC = () => {
@@ -30,6 +31,7 @@ const Performance: React.FC = () => {
   const [memoryHistory, setMemoryHistory] = useState<number[]>([]);
   const [diskHistory, setDiskHistory] = useState<{ [key: string]: number[] }>({});
   const [gpuHistory, setGpuHistory] = useState<number[]>([]);
+  const { setAlert } = useAlert(); // Use context for alerts
 
   useEffect(() => {
     const fetchSystemInfo = async () => {
@@ -91,10 +93,22 @@ const Performance: React.FC = () => {
   // When route changes to /performance, restore last tab or default to 'cpu'
   useEffect(() => {
     if (location.pathname === '/performance') {
-      const savedTab = localStorage.getItem('performanceTab');
-      setActiveTab(savedTab || 'cpu');
+      setActiveTab(localStorage.getItem('performanceTab') || 'cpu');
     }
   }, [location.pathname]);
+
+  // Only set alert in context, do NOT render any alert bar here!
+  useEffect(() => {
+    if ((cpu.usage ?? 0) > 90) {
+      setAlert("High CPU usage!");
+    } else if ((memory.percentage ?? 0) > 90) {
+      setAlert("Memory critically low!");
+    } else if (disks.some(disk => (disk.percentage ?? 0) > 95)) {
+      setAlert("Disk space critically low!");
+    } else {
+      setAlert(null);
+    }
+  }, [cpu, memory, disks, setAlert]);
 
   const tabs = [
     { key: 'cpu', label: 'CPU' },

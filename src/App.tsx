@@ -6,22 +6,25 @@ import './App.css';
 import { SidebarProvider } from './context/SidebarContext';
 import Performance from './components/Performance';
 import Processes from './components/Processes';
+import { AlertProvider } from './context/AlertContext';
 
 function App() {
   return (
-    <SidebarProvider>
-      <BrowserRouter>
-        <Sidebar />
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Overview />} />
-            <Route path="/performance" element={<Performance />} />
-            <Route path="/processes" element={<Processes />} />
-            {/* Add other routes as needed */}
-          </Routes>
-        </Layout>
-      </BrowserRouter>
-    </SidebarProvider>
+    <AlertProvider>
+      <SidebarProvider>
+        <BrowserRouter>
+          <Sidebar />
+          <Layout>
+            <Routes>
+              <Route path="/" element={<Overview />} />
+              <Route path="/performance" element={<Performance />} />
+              <Route path="/processes" element={<Processes />} />
+              {/* Add other routes as needed */}
+            </Routes>
+          </Layout>
+        </BrowserRouter>
+      </SidebarProvider>
+    </AlertProvider>
   );
 }
 
