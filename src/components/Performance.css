@@ -102,12 +102,55 @@
   color: #22c55e;
 }
 
-.disk-details span {
-  color: #3B82F6;
+.disk-brand-type {
+  color: #222;
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  text-align: center;
+  letter-spacing: 0.5px;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
 }
 
-.gpu-details span {
-  color: #F59E0B;
+.disk-details {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.disk-details-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.disk-details span {
+  color: #2563eb;
+  font-weight: bold;
+  font-size: 1.08rem;
+  background: #eaf1ff;
+  border-radius: 6px;
+  padding: 4px 10px;
+  margin-bottom: 4px;
+  display: inline-block;
+  box-shadow: 0 1px 4px rgba(37,99,235,0.08);
+}
+
+.disk-label {
+  color: #222;
+  background: #f5f5f5;
+  font-weight: 600;
+  font-size: 1.15rem;
+  border-radius: 8px;
+  padding: 8px 18px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  text-align: center;
+  display: inline-block;
+  border: 1px solid #e5e7eb;
 }
 
 .perf-right, .memory-right, .disk-right, .gpu-right {
@@ -185,25 +228,95 @@
   display: flex;
   flex-wrap: wrap;
   gap: 2rem;
-  justify-content: flex-start;
+  justify-content: center;
   align-items: stretch;
   width: 100%;
   margin-top: 2rem;
+  padding-left: 5vw;
 }
 
 .disk-row {
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  padding: 1.5rem;
+  background: #f9fafb;
+  border-radius: 20px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  border: 1px solid #e5e7eb; /* Soft, light gray border */
+  padding: 1.5rem 1.2rem;
+  color: #222;
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 320px;
+  min-width: 300px;
   max-width: 340px;
   width: 100%;
   margin-bottom: 0;
+  transition: box-shadow 0.2s, border-color 0.2s;
 }
+
+.disk-row:hover {
+  box-shadow: 0 6px 24px rgba(0,0,0,0.10);
+  border-color: #94a3b8; /* Slightly darker on hover */
+}
+
+.disk-title {
+  font-weight: bold;
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+  text-align: center;
+  color: #222;
+  letter-spacing: 1px;
+}
+
+.disk-brand-type {
+  color: #888;
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  text-align: center;
+  letter-spacing: 0.5px;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.disk-details {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.disk-label {
+  color: #222;
+  background: #f5f5f5;
+  font-weight: 600;
+  font-size: 1.15rem;
+  border-radius: 8px;
+  padding: 8px 18px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  text-align: center;
+  display: inline-block;
+  border: 1px solid #e5e7eb;
+}
+
+.disk-circle {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 1.5rem auto;
+}
+
+.disk-circle-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-weight: bold;
+  font-size: 1.1rem;
+  text-align: center;
+  color: #222;
+}
+
 
 /* Responsive design */
 @media (max-width: 1200px) {
@@ -224,6 +337,15 @@
   .memory-right,
   .disk-right,
   .gpu-right {
+    max-width: 100%;
+    width: 100%;
+  }
+  .disk-section {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+  .disk-row {
     max-width: 100%;
     width: 100%;
   }

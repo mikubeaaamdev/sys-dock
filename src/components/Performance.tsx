@@ -1,9 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { useLocation } from 'react-router-dom'; // Add this import
 import './Performance.css';
 
 const Performance: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('memory');
+  const location = useLocation(); // Get current route
+  const [activeTab, setActiveTab] = useState(() => {
+    // Restore last tab or default to 'cpu'
+    return localStorage.getItem('performanceTab') || 'cpu';
+  });
   const [cpu, setCpu] = useState<{
     name?: string;
     usage?: number;
@@ -77,6 +82,19 @@ const Performance: React.FC = () => {
     const interval = setInterval(fetchSystemInfo, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Save tab on change
+  useEffect(() => {
+    localStorage.setItem('performanceTab', activeTab);
+  }, [activeTab]);
+
+  // When route changes to /performance, restore last tab or default to 'cpu'
+  useEffect(() => {
+    if (location.pathname === '/performance') {
+      const savedTab = localStorage.getItem('performanceTab');
+      setActiveTab(savedTab || 'cpu');
+    }
+  }, [location.pathname]);
 
   const tabs = [
     { key: 'cpu', label: 'CPU' },
@@ -235,7 +253,17 @@ const Performance: React.FC = () => {
                       {disk.mount_point === "C:\\" ? "Local Disk C:" : `${disk.name} (${disk.mount_point})`}
                     </div>
                     <div className="disk-brand-type">
-                      {disk.brand ? disk.brand : ""} {disk.type_ ? disk.type_ : ""}
+                      {disk.brand ? (
+                        <span>{disk.brand}</span>
+                      ) : (
+                        <span style={{ color: "#bbb", fontWeight: "normal" }}>Unknown Brand</span>
+                      )}
+                      {" "}
+                      {disk.type_ ? (
+                        <span>{disk.type_}</span>
+                      ) : (
+                        <span style={{ color: "#bbb", fontWeight: "normal" }}>Unknown Type</span>
+                      )}
                     </div>
                     <div className="disk-circle">
                       <svg width="120" height="120">
@@ -258,9 +286,9 @@ const Performance: React.FC = () => {
                       </div>
                     </div>
                     <div className="disk-details">
-                      <div>Total: <span>{Math.round(disk.total / 1024 / 1024)} MB</span></div>
-                      <div>Used: <span>{Math.round(disk.used / 1024 / 1024)} MB</span></div>
-                      <div>Available: <span>{Math.round(disk.available / 1024 / 1024)} MB</span></div>
+                      <span className="disk-label">
+                        {`${Math.round(disk.available / (1024 * 1024 * 1024))} GB free of ${Math.round(disk.total / (1024 * 1024 * 1024))} GB`}
+                      </span>
                     </div>
                   </div>
                   <div className="disk-right">
