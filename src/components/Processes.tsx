@@ -57,7 +57,7 @@ const Processes: React.FC = () => {
   const [processes, setProcesses] = useState<ProcessInfo[]>([]);
   const [sortColumn, setSortColumn] = useState<SortColumn>("cpu");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
-  const [totalMemory, setTotalMemory] = useState<number>(1); // KB
+  const [, setTotalMemory] = useState<number>(1); // KB
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; pid: number } | null>(null);
   const [confirmEnd, setConfirmEnd] = useState<{ pid: number; name: string } | null>(null);
   const [highlightedPid, setHighlightedPid] = useState<number | null>(null);
@@ -80,13 +80,7 @@ const Processes: React.FC = () => {
   }, []);
 
   // RAM % calculation
-  const getRamPercent = (memKb: number) =>
-    totalMemory > 0 ? ((memKb / totalMemory) * 100) : 0;
 
-  const sortedProcesses = [...processes].sort((a, b) => {
-    // Always sort by RAM usage (descending)
-    return b.memory - a.memory;
-  });
 
   const handleSort = (col: SortColumn) => {
     if (sortColumn === col) {
@@ -138,7 +132,7 @@ const Processes: React.FC = () => {
     setHighlightedPid(null); // Remove highlight when menu closes
   };
 
-  const handleGroupContextMenu = (e: React.MouseEvent, groupKey: string, groupName: string) => {
+  const handleGroupContextMenu = (e: React.MouseEvent, groupKey: string) => {
     e.preventDefault();
     setGroupContextMenu({ x: e.clientX, y: e.clientY, groupKey });
     setConfirmEndGroup(null);
@@ -199,6 +193,22 @@ const Processes: React.FC = () => {
   }, []);
 
   const grouped = groupProcesses(processes);
+  const sortedGroups = [...grouped].sort((a, b) => {
+    if (sortColumn === "memory") {
+      return sortDirection === "asc"
+        ? a.totalMemory - b.totalMemory
+        : b.totalMemory - a.totalMemory;
+    }
+    if (sortColumn === "cpu") {
+      return sortDirection === "asc"
+        ? a.totalCpu - b.totalCpu
+        : b.totalCpu - a.totalCpu;
+    }
+    // Default: sort by name
+    return sortDirection === "asc"
+      ? a.name.localeCompare(b.name)
+      : b.name.localeCompare(a.name);
+  });
 
   return (
     <div className="processes-container">
@@ -215,19 +225,19 @@ const Processes: React.FC = () => {
                 CPU (%) {getArrow("cpu")}
               </th>
               <th onClick={() => handleSort("memory")}>
-                RAM (%) / MB {getArrow("memory")}
+                RAM (MB) {getArrow("memory")}
               </th>
             </tr>
           </thead>
           <tbody>
-            {grouped.map(group => {
+            {sortedGroups.map(group => {
               const groupKey = group.name + (group.exe || "");
               return (
                 <React.Fragment key={groupKey}>
                   <tr
                     className={expandedGroup === groupKey ? "highlighted-row" : ""}
                     onClick={() => setExpandedGroup(expandedGroup === groupKey ? null : groupKey)}
-                    onContextMenu={e => handleGroupContextMenu(e, groupKey, group.name)}
+                    onContextMenu={e => handleGroupContextMenu(e, groupKey)}
                     style={{ cursor: "pointer" }}
                   >
                     <td>
@@ -251,7 +261,8 @@ const Processes: React.FC = () => {
                     </td>
                     <td>{group.totalCpu.toFixed(1)}</td>
                     <td>
-                      {getRamPercent(group.totalMemory).toFixed(1)}% / {(group.totalMemory / 1024).toFixed(1)} MB
+                      {/* Only show MB, remove % for RAM */}
+                      {(group.totalMemory / 1024).toFixed(1)} MB
                     </td>
                   </tr>
                   {expandedGroup === groupKey && group.processes.map(proc => (
@@ -265,7 +276,7 @@ const Processes: React.FC = () => {
                       <td style={{ paddingLeft: 32 }}>{proc.name} (PID: {proc.pid})</td>
                       <td>{proc.cpu.toFixed(1)}</td>
                       <td>
-                        {getRamPercent(proc.memory).toFixed(1)}% / {(proc.memory / 1024).toFixed(1)} MB
+                        {(proc.memory / 1024).toFixed(1)} MB
                       </td>
                     </tr>
                   ))}

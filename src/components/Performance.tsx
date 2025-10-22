@@ -193,7 +193,14 @@ const Performance: React.FC = () => {
                 <div className="perf-graph-label">60 seconds</div>
               </div>
               <div className="perf-composition-title">Core Composition</div>
-              <div className="perf-composition-bar"></div>
+              <div className="perf-composition-bar-outer">
+                <div
+                  className="perf-composition-bar"
+                  style={{
+                    width: `${cpu.usage ?? 0}%`
+                  }}
+                ></div>
+              </div>
               {/* Add more CPU hardware details if available */}
             </div>
           </div>

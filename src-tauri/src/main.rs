@@ -196,7 +196,7 @@ fn fetch_processes() -> Vec<ProcessInfo> {
             ProcessInfo {
                 name: proc.name().to_string(),
                 cpu: proc.cpu_usage(),
-                memory: proc.memory(),
+                memory: proc.memory() / 1024, // <-- Divide by 1024 to convert KB to MB
                 pid: proc.pid().to_string().parse::<i32>().unwrap_or(0),
                 exe: exe_path,
                 icon,
@@ -205,9 +205,117 @@ fn fetch_processes() -> Vec<ProcessInfo> {
         .collect()
 }
 
-// Placeholder: always returns None for now
+#[cfg(target_os = "windows")]
+fn extract_icon_base64(exe_path: &str) -> Result<String, ()> {
+    use std::ptr;
+    use std::ffi::OsStr;
+    use std::os::windows::ffi::OsStrExt;
+    use winapi::um::shellapi::ExtractIconW;
+    use winapi::um::winuser::{GetIconInfo, DestroyIcon};
+    use winapi::um::wingdi::{GetObjectW, BITMAP, BITMAPINFOHEADER, BITMAPINFO, DIB_RGB_COLORS, CreateCompatibleDC, SelectObject, DeleteDC, DeleteObject, GetDIBits};
+    
+    use winapi::um::winnt::HANDLE;
+    use image::{ImageBuffer, Rgba};
+    use base64::engine::general_purpose;
+    use base64::Engine;
+    use image::codecs::png::PngEncoder;
+    use image::ImageEncoder;
+    use std::ffi::c_void;
+
+    // Convert exe_path to wide string
+    let wide: Vec<u16> = OsStr::new(exe_path).encode_wide().chain(Some(0)).collect();
+
+    unsafe {
+        // Extract the first icon from the executable
+        let hicon = ExtractIconW(ptr::null_mut(), wide.as_ptr(), 0);
+        if hicon.is_null() || hicon as usize <= 1 {
+            return Err(());
+        }
+
+        let mut icon_info = std::mem::zeroed();
+        if GetIconInfo(hicon, &mut icon_info) == 0 {
+            DestroyIcon(hicon);
+            return Err(());
+        }
+
+        let mut bmp: BITMAP = std::mem::zeroed();
+        if GetObjectW(icon_info.hbmColor as HANDLE, std::mem::size_of::<BITMAP>() as i32, &mut bmp as *mut _ as *mut _) == 0 {
+            DestroyIcon(hicon);
+            DeleteObject(icon_info.hbmColor as *mut c_void);
+            DeleteObject(icon_info.hbmMask as *mut c_void);
+            return Err(());
+        }
+
+        let width = bmp.bmWidth as u32;
+        let height = bmp.bmHeight as u32;
+
+        let bi = BITMAPINFOHEADER {
+            biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
+            biWidth: width as i32,
+            biHeight: height as i32,
+            biPlanes: 1,
+            biBitCount: 32,
+            biCompression: 0, // BI_RGB
+            biSizeImage: 0,
+            biXPelsPerMeter: 0,
+            biYPelsPerMeter: 0,
+            biClrUsed: 0,
+            biClrImportant: 0,
+        };
+
+        let mut pixels = vec![0u8; (width * height * 4) as usize];
+
+        let hdc = CreateCompatibleDC(ptr::null_mut());
+        SelectObject(hdc, icon_info.hbmColor as *mut c_void);
+
+        let res = GetDIBits(
+            hdc,
+            icon_info.hbmColor,
+            0,
+            height as u32,
+            pixels.as_mut_ptr() as *mut _,
+            &mut BITMAPINFO { bmiHeader: bi, bmiColors: [std::mem::zeroed()] },
+            DIB_RGB_COLORS,
+        );
+        DeleteDC(hdc);
+        DeleteObject(icon_info.hbmColor as *mut c_void);
+        DeleteObject(icon_info.hbmMask as *mut c_void);
+        DestroyIcon(hicon);
+
+        if res == 0 {
+            return Err(());
+        }
+
+        // BGRA to RGBA and flip vertically
+        let mut img = ImageBuffer::<Rgba<u8>, Vec<u8>>::new(width, height);
+        for y in 0..height {
+            for x in 0..width {
+                let idx = ((height - 1 - y) * width + x) as usize * 4;
+                let b = pixels[idx];
+                let g = pixels[idx + 1];
+                let r = pixels[idx + 2];
+                let a = pixels[idx + 3];
+                img.put_pixel(x, y, Rgba([r, g, b, a]));
+            }
+        }
+
+        let mut buf = Vec::new();
+        let encoder = PngEncoder::new(&mut buf);
+        if encoder.write_image(
+            &img,
+            width,
+            height,
+            image::ColorType::Rgba8,
+        ).is_ok() {
+            Ok(general_purpose::STANDARD.encode(&buf))
+        } else {
+            Err(())
+        }
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
 fn extract_icon_base64(_exe_path: &str) -> Result<String, ()> {
-    // TODO: Implement Windows icon extraction and base64 encoding
     Err(())
 }
 

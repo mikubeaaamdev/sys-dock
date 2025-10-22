@@ -4,8 +4,7 @@ import {
   GridIcon, 
   ActivityIcon, 
   ProcessIcon, 
-  StarIcon, 
-  WeatherIcon, 
+  StarIcon,  
   DocumentIcon, 
   SettingsIcon 
 } from '../assets/icons';
@@ -22,9 +21,8 @@ const Sidebar: React.FC = () => {
     { icon: HomeIcon, label: 'Overview', route: '/' },
     { icon: GridIcon, label: 'Performance', route: '/performance' },
     { icon: ProcessIcon, label: 'Processes', route: '/processes' }, // <-- moved up
-    { icon: ActivityIcon, label: 'Monitor', route: '/monitor' },    // <-- moved down
+    { icon: ActivityIcon, label: 'Widgets', route: '/widgets' },    // <-- moved down
     { icon: StarIcon, label: 'Favorites', route: '/favorites' },
-    { icon: WeatherIcon, label: 'Weather', route: '/weather' },
     { icon: DocumentIcon, label: 'Logs', route: '/logs' },
     { icon: SettingsIcon, label: 'Settings', route: '/settings' },
   ];
