@@ -1,0 +1,43 @@
+.weather-widget {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  padding: 18px;
+  min-width: 220px;
+  margin-bottom: 16px;
+}
+.weather-title {
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+}
+.weather-time {
+  font-size: 0.95rem;
+  color: #888;
+  margin-bottom: 10px;
+}
+.weather-cities {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.weather-city {
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 8px 12px;
+  min-width: 80px;
+  text-align: center;
+}
+.weather-temp {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #f59e0b;
+}
+.weather-city-name {
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+.weather-desc {
+  font-size: 0.85rem;
+  color: #555;
+}

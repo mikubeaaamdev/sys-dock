@@ -6,6 +6,7 @@ import PerformanceChart from './widgets/PerformanceChart';
 import ReminderWidget from './widgets/ReminderWidget';
 import './Overview.css';
 import { useAlert } from '../context/AlertContext';
+import { getSimulatedGpuUsage } from './gpuSim';
 
 interface DiskInfo {
   name: string;
@@ -36,11 +37,11 @@ const Overview: React.FC = () => {
   const [cpuHistory, setCpuHistory] = useState<number[]>(Array(16).fill(0));
   const [error, setError] = useState<string | null>(null);
   const { setAlert } = useAlert();
+  const [gpuTick, setGpuTick] = useState(() => Number(localStorage.getItem('gpuTick')) || 0);
+  const [gpu0Data, setGpu0Data] = useState<number[]>(Array(16).fill(0));
 
   // Sample data for charts that don't have real-time data yet
   const wifiData = [70, 80, 85, 90, 85, 88, 92, 89, 85, 88, 90, 95, 92, 88, 85, 89];
-  const gpu0Data = [10, 15, 20, 18, 25, 22, 18, 20, 15, 12, 18, 22, 25, 20, 15, 12];
-  const gpu1Data = [5, 8, 12, 10, 15, 12, 8, 10, 7, 5, 8, 12, 15, 10, 7, 7];
 
   const formatGB = (bytes: number) => (bytes / (1024 * 1024 * 1024)).toFixed(1);
 
@@ -99,9 +100,21 @@ const Overview: React.FC = () => {
     return systemData.cpu.name;
   };
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setGpuTick(t => {
+        const nextTick = t + 1;
+        localStorage.setItem('gpuTick', String(nextTick));
+        return nextTick;
+      });
+      setGpu0Data(prev => [...prev.slice(1), getSimulatedGpuUsage(gpuTick, 0)]);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [gpuTick]);
+
   return (
     <div className="overview">
-      <h1 className="overview-title">OVERVIEW</h1>
+      <div className="overview-title">OVERVIEW</div>
       <div className="overview-grid">
         <div className="left-column">
           <WeatherWidget />
@@ -162,20 +175,15 @@ const Overview: React.FC = () => {
             data={wifiData}
             className="wifi"
           />
-          <PerformanceChart
-            title="GPU 0"
-            percentage={12}
-            color="#3B82F6"
-            data={gpu0Data}
-            className="gpu-0"
-          />
-          <PerformanceChart
-            title="GPU 1"
-            percentage={7}
-            color="#EF4444"
-            data={gpu1Data}
-            className="gpu-1"
-          />
+          <div className="gpu-card">
+            <PerformanceChart
+              title="GPU"
+              percentage={gpu0Data[gpu0Data.length - 1]}
+              color="#F59E0B"
+              data={gpu0Data}
+              className="gpu"
+            />
+          </div>
         </div>
       </div>
     </div>

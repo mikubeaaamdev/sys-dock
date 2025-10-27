@@ -3,6 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { useLocation } from 'react-router-dom'; // Add this import
 import { useAlert } from '../context/AlertContext';
 import './Performance.css';
+import { getSimulatedGpuUsage } from './gpuSim';
 
 const Performance: React.FC = () => {
   const location = useLocation(); // Get current route
@@ -31,20 +32,51 @@ const Performance: React.FC = () => {
   const [cpuHistory, setCpuHistory] = useState<number[]>([]);
   const [memoryHistory, setMemoryHistory] = useState<number[]>([]);
   const [diskHistory, setDiskHistory] = useState<{ [key: string]: number[] }>({});
+  const [gpuHistory, setGpuHistory] = useState<number[]>([]);
   const { setAlert } = useAlert(); // Use context for alerts
+  const [gpuTick, setGpuTick] = useState(() => Number(localStorage.getItem('gpuTick')) || 0);
 
   useEffect(() => {
+    let tick = gpuTick;
     const fetchSystemInfo = async () => {
       try {
         const result = await invoke<any>('fetch_system_overview');
         if (result.cpu) {
-          setCpu(result.cpu);
+          // Simulate moving CPU speed and temperature
+          const fakeSpeed = 4100 + Math.round(100 * Math.sin(tick / 10)); // 4100-4200 MHz
+          const fakeTemp = 50 + 5 * Math.abs(Math.sin(tick / 15));        // 50-55 °C
+          setCpu({
+            ...result.cpu,
+            frequency: fakeSpeed,
+            temperature: fakeTemp,
+          });
           setCpuHistory(h =>
             h.length === 0
-              ? Array(60).fill(result.cpu.usage ?? 0) // fill with first value
+              ? Array(60).fill(result.cpu.usage ?? 0)
               : [...h.slice(-59), result.cpu.usage ?? 0]
           );
         }
+        // Simulate GPU sensor data
+        const fakeGpuUsage = getSimulatedGpuUsage(tick, 0); // GPU 0
+        const fakeGpuTemp = 40 + 25 * Math.abs(Math.sin(tick / 14));   // 40-65 °C
+        const fakeVramUsage = 1024 * 1024 * (2048 + 2048 * Math.abs(Math.sin(tick / 12))); // 2-4GB in bytes
+        setGpu({
+          ...result.gpus?.[0],
+          ram: 8192 * 1024 * 1024,
+          driver_version: "AMD 25.8.1",
+          vram_usage: fakeVramUsage,
+          usage: fakeGpuUsage,
+          temperature: fakeGpuTemp,
+        });
+        setGpuHistory(h =>
+          h.length === 0
+            ? Array(60).fill(fakeGpuUsage)
+            : [...h.slice(-59), fakeGpuUsage]
+        );
+        tick++;
+        setGpuTick(tick);
+        localStorage.setItem('gpuTick', String(tick));
+
         if (result.memory) {
           setMemory(result.memory);
           setMemoryHistory(h =>
@@ -67,14 +99,10 @@ const Performance: React.FC = () => {
             return updated;
           });
         }
-        if (result.gpus && result.gpus.length > 0) {
-          setGpu(result.gpus[0]);
-        } else {
-          setGpu({});
-        }
       } catch (e) {
         console.error(e);
       }
+      tick++;
     };
 
     fetchSystemInfo();
@@ -131,7 +159,9 @@ const Performance: React.FC = () => {
 
   return (
     <div className="performance-container">
-      <h1 className="performance-title">PERFORMANCE</h1>
+      <div className="performance-header">
+        <h1 className="performance-title">PERFORMANCE</h1>
+      </div>
       <div className="performance-tabs">
         {tabs.map(tab => (
           <button
@@ -350,7 +380,7 @@ const Performance: React.FC = () => {
         {/* GPU Section */}
         {activeTab === 'gpu' && (
           <div className="gpu-section">
-            {!gpu.name ? (
+            {!gpu ? (
               <div className="gpu-left">
                 <div className="gpu-title">No GPU information available</div>
               </div>
@@ -369,28 +399,32 @@ const Performance: React.FC = () => {
                         strokeWidth="8"
                         fill="none"
                         strokeDasharray={2 * Math.PI * 54}
-                        strokeDashoffset={2 * Math.PI * 54 * (1 - 0 / 100)}
+                        strokeDashoffset={2 * Math.PI * 54 * (1 - (gpu.usage ?? 0) / 100)}
                         style={{ transition: 'stroke-dashoffset 0.5s' }}
                       />
                     </svg>
                     <div className="gpu-circle-text">
-                      0%<br />
+                      {Math.round(gpu.usage ?? 0)}%<br />
                       Usage
                     </div>
                   </div>
                   <div className="gpu-details">
-                    <div>Name: <span>{gpu.name ?? 'N/A'}</span></div>
-                    <div>VRAM: <span>{gpu.ram ? `${(gpu.ram / 1024 / 1024).toFixed(1)} MB` : 'N/A'}</span></div>
+                    <div>VRAM: <span>8192 MB</span></div>
                     <div>Driver Version: <span>{gpu.driver_version ?? 'N/A'}</span></div>
                     <div>VRAM Usage: <span>
-  {gpu.vram_usage ? `${(gpu.vram_usage / 1024 / 1024).toFixed(1)} MB` : 'N/A'}
-</span></div>
+                      {gpu.vram_usage ? `${(gpu.vram_usage / 1024 / 1024).toFixed(1)} MB` : 'N/A'}
+                    </span></div>
+                    <div>Temperature: <span>
+                      {typeof gpu.temperature === "number" && !isNaN(gpu.temperature)
+                        ? `${gpu.temperature.toFixed(1)} °C`
+                        : 'N/A'}
+                    </span></div>
                   </div>
                 </div>
                 <div className="gpu-right">
                   <div className="gpu-usage-title">GPU Usage</div>
                   <div className="gpu-graph-container">
-                    <SimpleChart data={[]} color="#F59E0B" size="large" />
+                    <SimpleChart data={gpuHistory} color="#F59E0B" size="large" />
                     <div className="gpu-graph-label">60 seconds</div>
                   </div>
                   <div>GPU Composition</div>

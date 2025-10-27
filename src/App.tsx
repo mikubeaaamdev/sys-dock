@@ -7,6 +7,7 @@ import { SidebarProvider } from './context/SidebarContext';
 import Performance from './components/Performance';
 import Processes from './components/Processes';
 import { AlertProvider } from './context/AlertContext';
+import Widgets from './components/Widgets';
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
               <Route path="/" element={<Overview />} />
               <Route path="/performance" element={<Performance />} />
               <Route path="/processes" element={<Processes />} />
+              <Route path="/widgets" element={<Widgets />} />
               {/* Add other routes as needed */}
             </Routes>
           </Layout>

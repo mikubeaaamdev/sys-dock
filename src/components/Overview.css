@@ -222,3 +222,26 @@
     grid-template-columns: 1fr;
   }
 }
+
+.gpu-card {
+  background: #fffbe6;
+  border: 2px solid #f59e0b;
+  border-radius: 16px;
+  padding: 12px 18px 10px 18px;
+  margin-bottom: 18px;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.08);
+  transition: box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.gpu-card .performance-chart.gpu {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+/* Optionally, adjust the chart's title color for GPU */
+.performance-chart.gpu .chart-title {
+  color: #f59e0b;
+}
