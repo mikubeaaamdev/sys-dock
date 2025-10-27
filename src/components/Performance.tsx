@@ -17,7 +17,7 @@ const Performance: React.FC = () => {
     cores?: number;
     processes?: number;
     threads?: number;
-    handles?: number;
+    temperature?: number; // <-- Add this
     uptime?: number;
     l1_cache?: number;
     l2_cache?: number;
@@ -149,6 +149,9 @@ const Performance: React.FC = () => {
           <div className="perf-section">
             <div className="perf-left cpu-left">
               <div className="perf-title">CPU</div>
+              {cpu.name && (
+                <div className="perf-cpu-name">{cpu.name}</div>
+              )}
               <div className="perf-circle">
                 <svg width="120" height="120">
                   <circle cx="60" cy="60" r="54" stroke="#fff" strokeWidth="8" fill="none" />
@@ -175,11 +178,12 @@ const Performance: React.FC = () => {
                 <div>Cores: <span>{cpu.cores ?? 'N/A'}</span></div>
                 <div>Processes: <span>{cpu.processes !== undefined ? cpu.processes : 'N/A'}</span></div>
                 <div>Threads: <span>{cpu.threads !== undefined ? cpu.threads : 'N/A'}</span></div>
-                <div>Handles: <span>{cpu.handles && cpu.handles > 0 ? cpu.handles : 'N/A'}</span></div>
+                <div>Temperature: <span>
+    {typeof cpu.temperature === "number" && !isNaN(cpu.temperature)
+      ? `${cpu.temperature.toFixed(1)} °C`
+      : 'N/A'}
+  </span></div>
                 <div>Uptime: <span>{cpu.uptime !== undefined ? `${Math.floor(cpu.uptime / 3600)}h ${Math.floor((cpu.uptime % 3600) / 60)}m` : 'N/A'}</span></div>
-                <div>L1 Cache: <span>{cpu.l1_cache && cpu.l1_cache > 0 ? cpu.l1_cache : 'N/A'} KB</span></div>
-                <div>L2 Cache: <span>{cpu.l2_cache && cpu.l2_cache > 0 ? cpu.l2_cache : 'N/A'} KB</span></div>
-                <div>L3 Cache: <span>{cpu.l3_cache && cpu.l3_cache > 0 ? cpu.l3_cache : 'N/A'} KB</span></div>
               </div>
             </div>
             <div className="perf-right cpu-right">

@@ -32,6 +32,12 @@ struct CpuInfo {
     usage: f32,
     name: String,
     cores: usize,
+    frequency: Option<u64>,
+    threads: Option<u32>,        // <-- Add this
+    temperature: Option<f32>,    // <-- Add this
+    processes: Option<usize>,
+    handles: Option<usize>,
+    uptime: Option<u64>,
 }
 
 #[derive(Serialize)]
@@ -90,7 +96,6 @@ fn fetch_system_overview() -> SystemOverview {
     sys.refresh_disks();
     sys.refresh_all();
 
-    // Wait a short time and refresh CPU again for accurate usage
     std::thread::sleep(std::time::Duration::from_millis(100));
     sys.refresh_cpu();
 
@@ -108,6 +113,22 @@ fn fetch_system_overview() -> SystemOverview {
     let cpu_usage = sys.global_cpu_info().cpu_usage();
     let cpu_name = sys.global_cpu_info().brand().to_string();
     let cpu_cores = sys.cpus().len();
+    let cpu_frequency;
+    let cpu_threads;
+    let cpu_temperature;
+    if cfg!(target_os = "windows") {
+        let (wmi_freq, wmi_temp, wmi_threads) = fetch_cpu_wmi();
+        cpu_frequency = wmi_freq.or(Some(sys.global_cpu_info().frequency() as u64));
+        cpu_threads = wmi_threads.or(Some(num_cpus::get() as u32));
+        cpu_temperature = wmi_temp;
+    } else {
+        cpu_frequency = Some(sys.global_cpu_info().frequency() as u64);
+        cpu_threads = Some(num_cpus::get() as u32);
+        cpu_temperature = None;
+    }
+    let cpu_processes = Some(sys.processes().len());
+    let cpu_handles = None; // sysinfo does not provide handles
+    let cpu_uptime = Some(sys.uptime());
 
     // Disks
     let disks: Vec<DiskInfo> = sys.disks().iter().map(|disk| {
@@ -153,6 +174,12 @@ fn fetch_system_overview() -> SystemOverview {
             usage: cpu_usage,
             name: cpu_name,
             cores: cpu_cores,
+            frequency: cpu_frequency,
+            threads: cpu_threads,
+            temperature: cpu_temperature,
+            processes: cpu_processes,
+            handles: cpu_handles,
+            uptime: cpu_uptime,
         },
         disks,
         gpus, // Only main GPU included
@@ -424,4 +451,50 @@ fn fetch_gpus_dxgi() -> Vec<GpuInfo> {
         }
     }
     gpus
+}
+
+#[cfg(target_os = "windows")]
+fn fetch_cpu_wmi() -> (Option<u64>, Option<f32>, Option<u32>) {
+    use wmi::{COMLibrary, WMIConnection};
+    use serde::Deserialize;
+
+    #[derive(Deserialize, Debug)]
+    struct Win32Processor {
+        #[serde(rename = "CurrentClockSpeed")]
+        current_clock_speed: Option<u64>,
+        #[serde(rename = "NumberOfLogicalProcessors")]
+        number_of_logical_processors: Option<u32>,
+    }
+
+    #[derive(Deserialize, Debug)]
+    struct MsacpiThermalZoneTemperature {
+        #[serde(rename = "CurrentTemperature")]
+        current_temperature: Option<u32>,
+    }
+
+    let mut speed = None;
+    let mut threads = None;
+    let mut temp = None;
+
+    if let Ok(com_con) = COMLibrary::new() {
+        if let Ok(wmi_con) = WMIConnection::new(com_con.into()) {
+            // CPU speed and threads
+            if let Ok(results) = wmi_con.query::<Win32Processor>() {
+                if let Some(cpu) = results.first() {
+                    speed = cpu.current_clock_speed;
+                    threads = cpu.number_of_logical_processors;
+                }
+            }
+            // CPU temperature (in tenths of Kelvin)
+            if let Ok(results) = wmi_con.query::<MsacpiThermalZoneTemperature>() {
+                if let Some(zone) = results.first() {
+                    if let Some(raw_temp) = zone.current_temperature {
+                        // Convert tenths of Kelvin to Celsius
+                        temp = Some((raw_temp as f32 / 10.0) - 273.15);
+                    }
+                }
+            }
+        }
+    }
+    (speed, temp, threads)
 }
