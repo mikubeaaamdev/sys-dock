@@ -1,6 +1,6 @@
 .header {
-  background-color: #f5f0e6; /* Lighter beige color from the image */
-  color: #333;
+  background-color: var(--card-bg);
+  color: var(--text);
   padding: 8px 16px;
   border-bottom: 1px solid #ddd;
   display: flex;
@@ -60,13 +60,13 @@
   line-height: 1.2; /* Better line height for alignment */
   display: inline-flex;
   align-items: center;
-  color: #5050e6; /* Blue color for SysDock text from the image */
+  color: #2563eb; /* Blue color for SysDock text from the image */
 }
 
 .subtitle {
   font-size: 0.90rem;
   font-weight: 500;
-  color: #5050e6;
+  color: #2563eb; /* Blue color for subtitle text */
   line-height: 1.2;
   display: block;
   max-width: 125px; /* Increase width to fit the text better */
@@ -97,8 +97,8 @@
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background: rgba(255, 255, 255, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: var(--icon-btn-bg);
+  border: 1px solid var(--icon-btn-border);
   position: relative;
   overflow: hidden;
   backdrop-filter: blur(10px);
@@ -124,7 +124,7 @@
 }
 
 .control-btn:hover {
-  background: rgba(255, 255, 255, 0.35);
+  background: var(--icon-btn-bg);
   transform: scale(1.03);
   box-shadow: 
     0 4px 16px rgba(0, 0, 0, 0.1),
@@ -134,7 +134,7 @@
 .control-icon {
   width: 22px;
   height: 22px;
-  color: #8b7355;
+  color: var(--icon-color, #8b7355); /* Use theme variable, fallback to brown */
   transition: all 0.3s ease;
   flex-shrink: 0;
   z-index: 1;

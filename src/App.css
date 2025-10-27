@@ -26,3 +26,97 @@ html, body {
   border: 1px solid rgba(0, 0, 0, 0.1);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
 }
+
+/* Example for App.css or a global CSS file */
+:root {
+  --bg: #fff;
+  --text: #222;
+  --card-bg: #fff;
+  --primary: #2563eb;
+  --icon-color: #8b7355; /* brown for light theme */
+  --icon-btn-bg: rgba(0,0,0,0.07);      /* subtle gray for light mode */
+  --icon-btn-border: rgba(0,0,0,0.12);  /* subtle border for light mode */
+  --sidebar-bg: #e0d0c1; /* current light sidebar color */
+  --sidebar-icon: #8b7355;
+  --sidebar-label: #6b5b47;
+  --hamburger-icon: #8b7355;
+  --sidebar-active-bg: rgba(255,255,255,0.35);
+  --sidebar-hover-bg: rgba(255,255,255,0.35);
+  --sidebar-highlight: #f97316; /* orange for light mode */
+  --overview-title: #2563eb;
+  --disk-bar-bg: linear-gradient(90deg, #f3f4f6 0%, #e5e7eb 100%);
+  --memory-widget-bg: linear-gradient(135deg, #ff9a9e, #fad0c4);
+  --gpu-text: #222;      /* dark for light mode */
+  --border: rgba(0,0,0,0.1);
+}
+
+[data-theme="dark"] {
+  --bg: #18181b;
+  --text: #f3f4f6;
+  --card-bg: #232631;
+  --primary: #60a5fa;
+  --icon-color: #f3f4f6; /* light gray for dark theme */
+  --icon-btn-bg: rgba(255,255,255,0.13); /* subtle white for dark mode */
+  --icon-btn-border: rgba(255,255,255,0.18);
+  --icon-color: #f3f4f6;                 /* light for dark mode */
+  --sidebar-bg: #232631; /* match header dark color, or use #23272f for consistency */
+  --sidebar-icon: #f3f4f6;
+  --sidebar-label: #f3f4f6;
+  --hamburger-icon: #f3f4f6;
+  --sidebar-active-bg: rgba(255,255,255,0.08);
+  --sidebar-hover-bg: rgba(255,255,255,0.13);
+  --sidebar-highlight: #2563eb; /* blue for dark mode */
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* Example for cards/components */
+.settings-container,
+.disk-card,
+.disk-summary-card {
+  background: var(--card-bg);
+  color: var(--text);
+}
+
+/* Update other components to use variables for background, text, etc. */
+
+:root {
+  --gpu-text: #222; /* dark for light mode */
+}
+
+[data-theme="dark"] {
+  --gpu-text: #fff; /* white for dark mode */
+}
+
+:root {
+  --border: rgba(0,0,0,0.1);
+}
+
+[data-theme="dark"] {
+  --border: rgba(255,255,255,0.08);
+}
+
+:root {
+  --overview-title: #2563eb;
+  --border: #bdbdbd;
+  --table-border: #eee;
+  --table-hover: #eaeaea;
+}
+
+[data-theme="dark"] {
+  --overview-title: #60a5fa;
+  --border: #444851;
+  --table-border: #232631;
+  --table-hover: #232631;
+}
+
+:root {
+  --highlighted-row-text: #222; /* dark text for light mode */
+}
+
+[data-theme="dark"] {
+  --highlighted-row-text: #fff; /* white text for dark mode */
+}

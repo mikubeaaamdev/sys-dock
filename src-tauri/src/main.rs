@@ -17,6 +17,7 @@ struct DiskInfo {
     used: u64,
     available: u64,
     percentage: f64,
+    type_: String, // <-- Add this field
 }
 
 #[derive(Serialize)]
@@ -147,6 +148,7 @@ fn fetch_system_overview() -> SystemOverview {
             used,
             available,
             percentage,
+            type_: format!("{:?}", disk.kind()), // <-- Use disk.kind() instead of disk.type_
         }
     }).collect();
 
@@ -385,6 +387,23 @@ fn end_process(pid: i32) -> Result<(), String> {
     }
 }
 
+#[tauri::command]
+fn get_disk_health(disk_path: String) -> Option<String> {
+    use std::process::Command;
+    let output = Command::new("smartctl")
+        .args(&["-H", &disk_path])
+        .output()
+        .ok()?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    for line in stdout.lines() {
+        if line.contains("SMART overall-health self-assessment test result") {
+            return Some(line.trim().to_string());
+        }
+    }
+    None
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 fn main() {
     tauri::Builder::default()
@@ -393,7 +412,8 @@ fn main() {
             fetch_system_overview,
             fetch_processes,
             fetch_network_info,
-            end_process // <-- Add this line
+            end_process, // <-- Add this line
+            get_disk_health
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

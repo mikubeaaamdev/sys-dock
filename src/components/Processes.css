@@ -7,19 +7,26 @@
   display: flex;
   flex-direction: column;
   flex: 1;
-  background: #fff;
-  color: #222;
+  background: var(--bg);
+  color: var(--text);
 }
 
 .processes-container h2 {
   font-size: 2.5rem;
   font-weight: 700;
-  margin: 0.5rem 0 1rem 0; /* Reduced bottom margin */
+  margin: 0.5rem 0 1rem 0;
   padding: 0;
-  color: #333;
+  color: var(--overview-title, #2563eb);
   font-family: 'Segoe UI', sans-serif;
   text-transform: uppercase;
   letter-spacing: 1px;
+}
+
+.processes-title {
+  color: var(--overview-title, #2563eb);
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 24px;
 }
 
 .processes-table-wrapper {
@@ -47,49 +54,50 @@
   width: 100%;
   height: 100%;
   border-collapse: collapse;
-  background: #f8f9fa; /* Off-white */
-  color: #222;
+  background: var(--card-bg);
+  color: var(--text);
   font-size: 15px;
   table-layout: fixed;
-  border-radius: 16px;           /* Smoother corners */
-  border: 3px solid #bdbdbd;     /* More noticeable border */
+  border-radius: 16px;
+  border: 3px solid var(--border, #bdbdbd);
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  overflow: hidden;            /* Ensures corners are clipped */
+  overflow: hidden;
 }
 
 .processes-table th,
 .processes-table td {
   padding: 8px 12px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--table-border, #eee);
   text-align: left;
+  color: var(--text);
 }
 
 .processes-table th {
   cursor: pointer;
-  background: #f5f5f5;
+  background: var(--card-bg);
   user-select: none;
   position: sticky;
   top: 0;
   z-index: 2;
 }
 
-.processes-table tr:hover {
-  background: #eaeaea;
+.process-table tr:hover {
+  background: var(--table-hover, #eaeaea);
 }
 
 .process-icon {
   width: 24px;
   height: 24px;
   border-radius: 4px;
-  background: #ddd;
+  background: var(--icon-bg, #ddd);
   object-fit: contain;
   display: block;
 }
 
 .context-menu {
-  background: #222;
-  color: #fff;
-  border: 1px solid #444;
+  background: var(--card-bg);
+  color: var(--text);
+  border: 1px solid var(--border, #444);
   border-radius: 6px;
   padding: 8px 0;
   min-width: 120px;
@@ -99,7 +107,7 @@
 .context-menu button {
   background: none;
   border: none;
-  color: #fff;
+  color: var(--text);
   width: 100%;
   padding: 8px 16px;
   text-align: left;
@@ -107,10 +115,26 @@
   font-size: inherit;
 }
 .context-menu button:hover {
-  background: #444;
+  background: var(--border, #444);
 }
 
 .highlighted-row {
-  background-color: #cce6ff !important; /* Soft blue highlight */
+  background-color: var(--highlighted-row, #cce6ff) !important;
+  color: var(--highlighted-row-text, #222) !important;
   transition: background 0.2s;
+}
+
+:root {
+  --icon-bg: #ddd;
+  --highlighted-row: #cce6ff;
+}
+
+[data-theme="dark"] {
+  --icon-bg: #444851;
+  --highlighted-row: #2563eb22;
+}
+
+.expanded-row {
+  background: var(--expanded-row-bg) !important;
+  color: var(--expanded-row-text) !important;
 }

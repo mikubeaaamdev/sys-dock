@@ -212,7 +212,7 @@ const Processes: React.FC = () => {
 
   return (
     <div className="processes-container">
-      <h2>Processes</h2>
+      <h2 className="processes-title">Processes</h2>
       <div className="processes-table-scroll">
         <table className="processes-table">
           <thead>
@@ -268,9 +268,8 @@ const Processes: React.FC = () => {
                   {expandedGroup === groupKey && group.processes.map(proc => (
                     <tr
                       key={proc.pid}
-                      className={highlightedPid === proc.pid ? "highlighted-row" : ""}
+                      className={highlightedPid === proc.pid ? "highlighted-row expanded-row" : "expanded-row"}
                       onContextMenu={e => handleContextMenu(e, proc.pid)}
-                      style={{ background: "#f5faff" }}
                     >
                       <td></td>
                       <td style={{ paddingLeft: 32 }}>{proc.name} (PID: {proc.pid})</td>

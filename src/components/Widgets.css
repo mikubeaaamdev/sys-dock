@@ -1,5 +1,6 @@
 .widgets-hub {
-  padding: 2rem;
+  background: var(--bg);
+  color: var(--text);
 }
 .widgets-grid {
   display: flex;
@@ -9,7 +10,7 @@
 .widgets-title {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #222;
+  color: var(--primary);
   margin-bottom: 24px;
   margin-top: 24px;
   margin-left: 18px;

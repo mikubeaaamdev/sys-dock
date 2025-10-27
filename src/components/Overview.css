@@ -1,4 +1,6 @@
 .overview {
+  background: var(--bg);
+  color: var(--text);
   padding: 1.5rem 2rem;
   width: 100%;
   height: calc(100vh - 70px); /* Subtract header height */
@@ -7,6 +9,8 @@
   flex-direction: column;
   box-sizing: border-box;
 }
+
+/* Disk colors (keep as is for visual distinction) */
 
 /* Add these new styles for disk elements */
 .disk-0 {
@@ -66,7 +70,8 @@
 
 /* Make memory widget more prominent as in the image */
 .memory-widget {
-  background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+  background: var(--memory-widget-bg, linear-gradient(135deg, #ff9a9e, #fad0c4));
+  color: var(--text);
   border-radius: 12px;
   padding: 1.5rem;
   display: flex;
@@ -79,19 +84,20 @@
 
 /* Make performance charts fill width better */
 .performance-chart {
+  background: var(--card-bg);
+  color: var(--text);
   width: 100%;
   height: 120px; /* Fixed height to match image */
   border-radius: 12px;
   overflow: hidden;
-  background: #f8f9fa;
   padding: 1rem;
   box-sizing: border-box;
 }
 
 /* Make storage drives section fill the space properly */
 .storage-drives {
-  background: #333;
-  color: white;
+  background: var(--card-bg);
+  color: var(--text);
   border-radius: 12px;
   padding: 1.5rem;
   width: 100%;
@@ -99,7 +105,9 @@
 
 /* Add these improved styles for the disk list */
 .disk-list-container {
-  background: rgba(30, 30, 30, 0.8);
+  background: var(--card-bg);
+  color: var(--text);
+  border: 1px solid var(--border, rgba(0,0,0,0.1)); /* fallback for light, update global variable for dark */
   border-radius: 12px;
   padding: 1.25rem;
   width: 100%;
@@ -107,12 +115,11 @@
   flex-direction: column;
   gap: 0.75rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  color: #e2e8f0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.disk-list-container h3 {
-  color: #ffffff;
+.disk-list-container h3,
+.disk-list-header {
+  color: var(--text);
   margin-top: 0;
   margin-bottom: 0.75rem;
   font-size: 1.25rem;
@@ -124,7 +131,7 @@
   padding-bottom: 0.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   font-weight: 600;
-  color: #ffffff;
+  color: var(--text); /* <-- FIXED */
 }
 
 .disk-item {
@@ -136,18 +143,19 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.disk-name {
+.disk-name,
+.disk-details {
+  color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 500;
-  color: #ffffff;
 }
 
 .disk-usage-bar {
   width: 100%;
   height: 14px;
-  background: linear-gradient(90deg, #23272f 0%, #444851 100%);
+  background: var(--disk-bar-bg, linear-gradient(90deg, #f3f4f6 0%, #e5e7eb 100%)); /* light gray gradient */
   border-radius: 7px;
   overflow: visible;
   position: relative;
@@ -164,23 +172,48 @@
   box-shadow: 0 2px 8px rgba(34,197,94,0.12), 0 1px 2px rgba(245,158,11,0.10), 0 1px 2px rgba(220,38,38,0.10);
 }
 
-.disk-details {
-  text-align: right;
-  white-space: nowrap;
-  font-weight: 500;
-  color: #ffffff;
-}
-
 /* Make the title more compact */
 .overview-title {
   font-size: 2.5rem;
   font-weight: 700;
-  margin: 0.5rem 0 1rem 0; /* Reduced bottom margin */
+  margin: 0.5rem 0 1rem 0;
   padding: 0;
-  color: #333;
+  color: var(--overview-title, #2563eb);
   font-family: 'Segoe UI', sans-serif;
   text-transform: uppercase;
   letter-spacing: 1px;
+}
+
+/* GPU card */
+.gpu-card {
+  background: var(--card-bg);
+  color: var(--gpu-text); /* Use theme variable for text */
+  border: 2px solid #f59e0b; /* Always yellow */
+  border-radius: 16px;
+  padding: 12px 18px 10px 18px;
+  margin-bottom: 18px;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.08);
+  transition: box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+/* If you have specific GPU text elements, update them too: */
+.gpu-card .gpu-details,
+.gpu-card .gpu-label,
+.gpu-card .gpu-title {
+  color: var(--gpu-text);
+}
+
+.gpu-card .performance-chart.gpu {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+/* Optionally, adjust the chart's title color for GPU */
+.performance-chart.gpu .chart-title {
+  color: #f59e0b; /* Always yellow */
 }
 
 /* Responsive design */
@@ -221,27 +254,4 @@
   .right-column {
     grid-template-columns: 1fr;
   }
-}
-
-.gpu-card {
-  background: #fffbe6;
-  border: 2px solid #f59e0b;
-  border-radius: 16px;
-  padding: 12px 18px 10px 18px;
-  margin-bottom: 18px;
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.08);
-  transition: box-shadow 0.2s;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-}
-
-.gpu-card .performance-chart.gpu {
-  background: transparent;
-  border: none;
-  box-shadow: none;
-}
-/* Optionally, adjust the chart's title color for GPU */
-.performance-chart.gpu .chart-title {
-  color: #f59e0b;
 }

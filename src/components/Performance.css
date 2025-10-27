@@ -1,4 +1,365 @@
-.performance-page {  padding: 1.5rem 2rem;  width: 100%;  height: calc(100vh - 70px); /* Subtract header height */  overflow-y: auto;  display: flex;  flex-direction: column;  box-sizing: border-box;}.performance-page h1 {  margin-bottom: 1.5rem;  color: var(--text-primary, #ffffff);  font-size: 1.8rem;}.performance-grid {  display: grid;  grid-template-columns: repeat(2, 1fr);  grid-auto-rows: auto;  gap: 20px;  width: 100%;  flex: 1;}.performance-card {  background: var(--bg-secondary, #262626);  border-radius: 12px;  padding: 1.5rem;  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));}.performance-card h2 {  margin-top: 0;  margin-bottom: 1rem;  font-size: 1.3rem;  color: var(--text-primary, #ffffff);}.performance-details {  display: flex;  gap: 1.5rem;  height: 200px;}.performance-chart-container {  flex: 2;  display: flex;  flex-direction: column;  position: relative;}.chart-labels {  display: flex;  flex-direction: column;  justify-content: space-between;  position: absolute;  left: 0;  top: 0;  height: 100%;  font-size: 0.8rem;  color: var(--text-secondary, #94a3b8);  padding-right: 8px;  width: 40px;  text-align: right;}.chart-area {  flex: 1;  display: flex;  align-items: flex-end;  gap: 2px;  margin-left: 40px;  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));  padding-bottom: 5px;}.history-bar {  flex: 1;  min-width: 3px;  border-radius: 2px 2px 0 0;  transition: height 0.2s ease;}.performance-info {  flex: 1;  display: flex;  flex-direction: column;  justify-content: center;}.performance-info p {  margin: 0.5rem 0;  color: var(--text-secondary, #94a3b8);}.performance-info p strong {  color: var(--text-primary, #ffffff);  margin-right: 0.5rem;}.performance-title {  font-size: 2.5rem;  font-weight: 700;  color: #222;  margin: 0;  text-align: left;  letter-spacing: 0.02em;}.performance-tabs {  display: flex;  gap: 1rem;  margin-bottom: 2rem;  justify-content: center;}.performance-tab-btn {  padding: 0.7rem 2rem;  border: none;  border-radius: 20px;  background: #e0e7ef;  color: #333;  font-weight: 600;  cursor: pointer;  font-size: 1.1rem;  transition: background 0.2s, color 0.2s;  box-shadow: 0 2px 8px rgba(0,0,0,0.04);}.performance-tab-btn.active {  background: #ff6b6b;  color: #fff;}.performance-content {  display: flex;  flex-direction: row;  gap: 2rem;  width: 100%;  align-items: flex-start;  justify-content: center;  min-height: 600px;}.perf-section {  display: flex;  gap: 2rem;  align-items: flex-start;}.perf-chart {  min-width: 160px;}.perf-info {  font-size: 1.1rem;  color: #222;}.performance-section {  background: white;  border-radius: 12px;  padding: 1.5rem;  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);}.performance-section h2 {  margin-top: 0;  font-size: 1.4rem;  color: #333;  border-bottom: 1px solid #eee;  padding-bottom: 0.5rem;  margin-bottom: 1rem;}/* CPU Section */.cpu-overview {  display: flex;  align-items: center;  gap: 20px;  margin-bottom: 20px;}.cpu-details h3 {  margin: 0 0 10px 0;  font-size: 1.2rem;}.cpu-details p {  margin: 5px 0;  color: #555;}.cpu-chart {  margin-bottom: 20px;  height: 150px;}.cores-grid {  display: grid;  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));  gap: 15px;}.core-item {  display: flex;  align-items: center;  gap: 10px;}.core-name {  min-width: 60px;}.core-bar {  flex: 1;  height: 8px;  background: #eee;  border-radius: 4px;  overflow: hidden;}.core-fill {  height: 100%;  border-radius: 4px;  transition: width 0.3s ease;}.core-value {  min-width: 40px;  text-align: right;}/* Memory Section */.memory-overview {  display: flex;  align-items: center;  gap: 20px;  margin-bottom: 20px;}.memory-details p {  margin: 5px 0;  color: #555;}.memory-chart {  height: 150px;}/* Network Section */.network-section {  margin-top: 24px;}.network-table {  width: 100%;  border-collapse: collapse;  margin-top: 12px;  background: #fff;  border-radius: 8px;  box-shadow: 0 2px 8px rgba(0,0,0,0.04);}.network-table th, .network-table td {  padding: 8px 12px;  border-bottom: 1px solid #eee;  text-align: left;}.network-table th {  background: #f3f4f6;  font-weight: 600;}.status-connected {  color: #22c55e;  font-weight: bold;}.status-disconnected {  color: #ef4444;  font-weight: bold;}.network-chart {  height: 150px;  margin-bottom: 20px;}.network-stats {  display: flex;  justify-content: space-between;  gap: 20px;}.network-stat {  background: #f5f5f5;  border-radius: 8px;  padding: 10px 15px;  flex: 1;  display: flex;  justify-content: space-between;  align-items: center;}.stat-label {  color: #555;  font-weight: 500;}.stat-value {  color: #333;  font-weight: 600;}/* Process Section */.process-section {  grid-column: span 2; /* Make process section span full width */}.process-list {  width: 100%;  border-radius: 8px;  overflow: hidden;  border: 1px solid #eee;}.process-header {  display: grid;  grid-template-columns: 70px 1fr 100px 100px 100px;  background: #f5f5f5;  padding: 10px 15px;  font-weight: 600;  color: #333;}
+:root {
+  --perf-title: #2563eb;
+  --perf-card-bg: var(--card-bg, #fff);
+  --perf-card-border: var(--border, #e5e7eb);
+  --perf-text-primary: var(--text, #222);
+  --perf-text-secondary: #94a3b8;
+  --perf-accent-red: #ff6b6b;
+  --perf-accent-green: #22c55e;
+}
+
+[data-theme="dark"] {
+  --perf-title: #60a5fa;
+  --perf-card-bg: var(--card-bg, #232631);
+  --perf-card-border: var(--border, #444851);
+  --perf-text-primary: var(--text, #f3f4f6);
+  --perf-text-secondary: #94a3b8;
+  --perf-accent-red: #ff6b6b;
+  --perf-accent-green: #22c55e;
+}
+
+.performance-page {
+  padding: 1.5rem 2rem;
+  width: 100%;
+  height: calc(100vh - 70px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: var(--bg);
+  color: var(--perf-text-primary);
+}
+
+.performance-page h1 {
+  margin-bottom: 1.5rem;
+  color: var(--perf-title);
+  font-size: 1.8rem;
+}
+
+.performance-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: auto;
+  gap: 20px;
+  width: 100%;
+  flex: 1;
+}
+
+.performance-card {
+  background: var(--perf-card-bg);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--perf-card-border);
+}
+
+.performance-card h2 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.3rem;
+  color: var(--perf-title);
+}
+
+.performance-details {
+  display: flex;
+  gap: 1.5rem;
+  height: 200px;
+}
+
+.performance-chart-container {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.chart-labels {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  font-size: 0.8rem;
+  color: var(--text-secondary, #94a3b8);
+  padding-right: 8px;
+  width: 40px;
+  text-align: right;
+}
+
+.chart-area {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  margin-left: 40px;
+  border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+  padding-bottom: 5px;
+}
+
+.history-bar {
+  flex: 1;
+  min-width: 3px;
+  border-radius: 2px 2px 0 0;
+  transition: height 0.2s ease;
+}
+
+.performance-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.performance-info p {
+  margin: 0.5rem 0;
+  color: var(--perf-text-secondary);
+}
+
+.performance-info p strong {
+  color: var(--perf-text-primary);
+  margin-right: 0.5rem;
+}
+
+.performance-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--perf-title);
+  margin: 0;
+  text-align: left;
+  letter-spacing: 0.02em;
+}
+
+.performance-tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  justify-content: center;
+}
+
+.performance-tab-btn {
+  padding: 0.7rem 2rem;
+  border: none;
+  border-radius: 20px;
+  background: #e0e7ef;
+  color: #333;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: background 0.2s, color 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.performance-tab-btn.active {
+  background: #ff6b6b;
+  color: #fff;
+}
+
+.performance-content {
+  display: flex;
+  flex-direction: row;
+  gap: 2rem;
+  width: 100%;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 600px;
+}
+
+.perf-section {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+
+.perf-chart {
+  min-width: 160px;
+}
+
+.perf-info {
+  font-size: 1.1rem;
+  color: #222;
+}
+
+.performance-section {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.performance-section h2 {
+  margin-top: 0;
+  font-size: 1.4rem;
+  color: #333;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+/* CPU Section */
+.cpu-overview {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.cpu-details h3 {
+  margin: 0 0 10px 0;
+  font-size: 1.2rem;
+}
+
+.cpu-details p {
+  margin: 5px 0;
+  color: #555;
+}
+
+.cpu-chart {
+  margin-bottom: 20px;
+  height: 150px;
+}
+
+.cores-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 15px;
+}
+
+.core-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.core-name {
+  min-width: 60px;
+}
+
+.core-bar {
+  flex: 1;
+  height: 8px;
+  background: #eee;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.core-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.core-value {
+  min-width: 40px;
+  text-align: right;
+}
+
+/* Memory Section */
+.memory-overview {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.memory-details p {
+  margin: 5px 0;
+  color: #555;
+}
+
+.memory-chart {
+  height: 150px;
+}
+
+/* Network Section */
+.network-section {
+  margin-top: 24px;
+}
+
+.network-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.network-table th,
+.network-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+}
+
+.network-table th {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+
+.status-connected {
+  color: var(--perf-accent-green);
+  font-weight: bold;
+}
+
+.status-disconnected {
+  color: var(--perf-accent-red);
+  font-weight: bold;
+}
+
+.network-chart {
+  height: 150px;
+  margin-bottom: 20px;
+}
+
+.network-stats {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.network-stat {
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 10px 15px;
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stat-label {
+  color: #555;
+  font-weight: 500;
+}
+
+.stat-value {
+  color: #333;
+  font-weight: 600;
+}
+
+/* Process Section */
+.process-section {
+  grid-column: span 2;
+  /* Make process section span full width */
+}
+
+.process-list {
+  width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #eee;
+}
+
+.process-header {
+  display: grid;
+  grid-template-columns: 70px 1fr 100px 100px 100px;
+  background: #f5f5f5;
+  padding: 10px 15px;
+  font-weight: 600;
+  color: #333;
+}
 
 .process-item {
   display: grid;
@@ -12,7 +373,10 @@
 }
 
 /* General split-panel layout for all sections */
-.perf-section, .memory-section, .disk-section, .gpu-section {
+.perf-section,
+.memory-section,
+.disk-section,
+.gpu-section {
   display: flex;
   gap: 2rem;
   width: 100%;
@@ -20,7 +384,10 @@
 }
 
 /* Left panel styles */
-.perf-left, .memory-left, .disk-left, .gpu-left {
+.perf-left,
+.memory-left,
+.disk-left,
+.gpu-left {
   flex: 0 0 340px;
   max-width: 340px;
   min-width: 260px;
@@ -31,27 +398,36 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.07);
   border: 1px solid #e5e7eb;
 }
 
-.perf-title, .memory-title, .disk-title, .gpu-title {
+.perf-title,
+.memory-title,
+.disk-title,
+.gpu-title {
   font-weight: bold;
   font-size: 1.3rem;
   margin-bottom: 1rem;
   text-align: center;
-  color: #ff6b6b;
+  color: var(--perf-accent-red);
   letter-spacing: 1px;
 }
 
-.perf-circle, .memory-circle, .disk-circle, .gpu-circle {
+.perf-circle,
+.memory-circle,
+.disk-circle,
+.gpu-circle {
   position: relative;
   width: 120px;
   height: 120px;
   margin: 0 auto 1.5rem auto;
 }
 
-.perf-circle-text, .memory-circle-text, .disk-circle-text, .gpu-circle-text {
+.perf-circle-text,
+.memory-circle-text,
+.disk-circle-text,
+.gpu-circle-text {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -62,7 +438,10 @@
   color: #222;
 }
 
-.perf-details, .memory-details, .disk-details, .gpu-details {
+.perf-details,
+.memory-details,
+.disk-details,
+.gpu-details {
   margin-top: 1.5rem;
   font-size: 1rem;
   width: 100%;
@@ -71,9 +450,12 @@
   gap: 0.5rem;
 }
 
-.perf-details span, .memory-details span, .disk-details span, .gpu-details span {
+.perf-details span,
+.memory-details span,
+.disk-details span,
+.gpu-details span {
   font-weight: bold;
-  color: #ff6b6b;
+  color: var(--perf-accent-red);
 }
 
 .memory-stats-grid {
@@ -137,7 +519,7 @@
   padding: 4px 10px;
   margin-bottom: 4px;
   display: inline-block;
-  box-shadow: 0 1px 4px rgba(37,99,235,0.08);
+  box-shadow: 0 1px 4px rgba(37, 99, 235, 0.08);
 }
 
 .disk-label {
@@ -147,13 +529,16 @@
   font-size: 1.15rem;
   border-radius: 8px;
   padding: 8px 18px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
   text-align: center;
   display: inline-block;
   border: 1px solid #e5e7eb;
 }
 
-.perf-right, .memory-right, .disk-right, .gpu-right {
+.perf-right,
+.memory-right,
+.disk-right,
+.gpu-right {
   flex: 1 1 0;
   min-width: 0;
   display: flex;
@@ -161,19 +546,25 @@
   gap: 1.5rem;
 }
 
-.perf-usage-title, .memory-usage-title, .disk-usage-title, .gpu-usage-title {
+.perf-usage-title,
+.memory-usage-title,
+.disk-usage-title,
+.gpu-usage-title {
   font-weight: bold;
   font-size: 1.3rem;
   margin-bottom: 0.5rem;
   color: #222;
 }
 
-.perf-graph-container, .memory-graph-container, .disk-graph-container, .gpu-graph-container {
+.perf-graph-container,
+.memory-graph-container,
+.disk-graph-container,
+.gpu-graph-container {
   background: #fff;
   border-radius: 16px;
   padding: 1rem;
   margin-bottom: 1rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   width: 100%;
 }
 
@@ -191,19 +582,28 @@
   justify-content: center;
 }
 
-.perf-graph-label, .memory-graph-label, .disk-graph-label, .gpu-graph-label {
+.perf-graph-label,
+.memory-graph-label,
+.disk-graph-label,
+.gpu-graph-label {
   color: #888;
   font-size: 0.9rem;
   margin-top: 0.5rem;
 }
 
-.perf-composition-title, .disk-composition-title, .memory-composition-title, .gpu-composition-title {
+.perf-composition-title,
+.disk-composition-title,
+.memory-composition-title,
+.gpu-composition-title {
   font-weight: bold;
   margin-bottom: 0.5rem;
   color: #222;
 }
 
-.perf-composition-bar, .memory-composition-bar, .disk-composition-bar, .gpu-composition-bar {
+.perf-composition-bar,
+.memory-composition-bar,
+.disk-composition-bar,
+.gpu-composition-bar {
   background: #ff6b6b;
   height: 14px;
   border-radius: 7px;
@@ -217,11 +617,11 @@
 }
 
 .disk-composition-bar {
-  background: #3B82F6;
+  background: #3b82f6;
 }
 
 .gpu-composition-bar {
-  background: #F59E0B;
+  background: #f59e0b;
 }
 
 .disk-section {
@@ -235,88 +635,127 @@
   padding-left: 5vw;
 }
 
-.disk-row {
-  background: #f9fafb;
-  border-radius: 20px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-  border: 1px solid #e5e7eb; /* Soft, light gray border */
-  padding: 1.5rem 1.2rem;
+.disk-section-modern {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-top: 24px;
+}
+
+.disk-card {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(60, 60, 60, 0.09);
+  padding: 18px 24px;
+  display: flex;
+  flex-direction: column;
+  min-width: 260px;
+  max-width: 340px;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.disk-card:hover {
+  box-shadow: 0 6px 24px rgba(60, 60, 60, 0.13);
+  transform: translateY(-2px) scale(1.03);
+}
+
+/* Header and Type */
+.disk-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.disk-name {
+  font-size: 1.08rem;
+  font-weight: 600;
   color: #222;
+}
+
+.disk-type {
+  font-size: 0.92rem;
+  color: #2563eb;
+  background: #eaf3ff;
+  border-radius: 6px;
+  padding: 2px 10px;
+  font-weight: 500;
+}
+
+/* Usage Bar */
+.disk-usage-bar-outer {
+  width: 100%;
+  background: #f3f4f6;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  height: 18px;
+  overflow: hidden;
+}
+
+.disk-usage-bar {
+  height: 18px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+  transition: width 0.5s;
+}
+
+/* Usage Details */
+.disk-usage-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.97rem;
+  color: #444;
+  margin-top: 2px;
+}
+
+.disk-usage-percent {
+  font-weight: 500;
+  color: #2563eb;
+}
+
+.disk-space {
+  color: #666;
+}
+
+.disk-empty {
+  padding: 32px;
+  text-align: center;
+  color: #aaa;
+}
+
+.disk-summary-card {
+  background: #f8fafc;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(60, 60, 60, 0.06);
+  padding: 18px 32px;
+  margin-bottom: 32px;
+  max-width: 480px;
+  text-align: center;
+  color: #222;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.disk-grid {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 48px;
+  align-items: flex-start;
+}
+
+.disk-list-column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.disk-pie-column {
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-width: 300px;
-  max-width: 340px;
-  width: 100%;
-  margin-bottom: 0;
-  transition: box-shadow 0.2s, border-color 0.2s;
+  justify-content: flex-start;
 }
-
-.disk-row:hover {
-  box-shadow: 0 6px 24px rgba(0,0,0,0.10);
-  border-color: #94a3b8; /* Slightly darker on hover */
-}
-
-.disk-title {
-  font-weight: bold;
-  font-size: 1.3rem;
-  margin-bottom: 1rem;
-  text-align: center;
-  color: #222;
-  letter-spacing: 1px;
-}
-
-.disk-brand-type {
-  color: #888;
-  font-size: 1rem;
-  font-weight: 500;
-  margin-bottom: 0.5rem;
-  text-align: center;
-  letter-spacing: 0.5px;
-  display: flex;
-  gap: 0.5rem;
-  justify-content: center;
-}
-
-.disk-details {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 1rem;
-  margin-bottom: 0.5rem;
-}
-
-.disk-label {
-  color: #222;
-  background: #f5f5f5;
-  font-weight: 600;
-  font-size: 1.15rem;
-  border-radius: 8px;
-  padding: 8px 18px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-  text-align: center;
-  display: inline-block;
-  border: 1px solid #e5e7eb;
-}
-
-.disk-circle {
-  position: relative;
-  width: 120px;
-  height: 120px;
-  margin: 0 auto 1.5rem auto;
-}
-
-.disk-circle-text {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-weight: bold;
-  font-size: 1.1rem;
-  text-align: center;
-  color: #222;
-}
-
 
 /* Responsive design */
 @media (max-width: 1200px) {
@@ -349,4 +788,40 @@
     max-width: 100%;
     width: 100%;
   }
+}
+
+.disk-pie-chart-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+}
+.disk-pie-chart-label {
+  margin-top: 8px;
+  font-size: 1rem;
+  color: #444;
+}
+.disk-pie-chart-legend {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.disk-pie-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.97rem;
+}
+.disk-pie-legend-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-right: 2px;
+  border: 1px solid #e5e7eb;
+}
+.disk-pie-legend-label {
+  color: #222;
 }

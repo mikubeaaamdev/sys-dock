@@ -1,7 +1,7 @@
 .sidebar {
   width: 70px;
-  background-color: #e0d0c1 !important;
-  background: #e0d0c1 !important;
+  background-color: var(--sidebar-bg) !important;
+  background: var(--sidebar-bg) !important;
   border: none;
   display: flex;
   flex-direction: column;
@@ -49,7 +49,7 @@
 .hamburger-line {
   width: 18px;
   height: 2px;
-  background-color: #8b7355;
+  background-color: var(--hamburger-icon);
   margin: 1.5px 0;
   border-radius: 1px;
   transition: all 0.3s ease;
@@ -70,9 +70,9 @@
 .sidebar-menu {
   display: flex;
   flex-direction: column;
-  gap: 6px; /* Tighter gap for cube-like stacking */
+  gap: 10px; /* Tighter gap for cube-like stacking */
   width: 100%;
-  padding: 0 1px; /* Reduced horizontal padding */
+  padding: 0 10px; /* Reduced horizontal padding */
   flex: 1;
   justify-content: flex-start;
   align-items: center;
@@ -87,7 +87,7 @@
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background: rgba(255, 255, 255, 0.25);
+  background: var(--sidebar-hover-bg);
   border: 1px solid rgba(255, 255, 255, 0.3);
   position: relative;
   overflow: hidden;
@@ -152,7 +152,7 @@
   transform: translateY(-50%);
   width: 3px;
   height: 20px;
-  background: #f97316;
+  background: var(--sidebar-highlight);
   border-radius: 2px;
   opacity: 1;
   box-shadow: 0 0 8px rgba(249, 115, 22, 0.4);
@@ -167,27 +167,22 @@
 .menu-icon {
   width: 22px; /* Slightly larger for better cube proportions */
   height: 22px;
-  color: #8b7355;
+  color: var(--sidebar-icon);
   transition: all 0.3s ease;
   flex-shrink: 0;
   z-index: 1;
 }
 
-.menu-item.active .menu-icon {
-  color: #6b5b47;
-  transform: scale(1.05);
-}
-
+.menu-item.active .menu-icon,
 .menu-item:hover .menu-icon {
-  color: #6b5b47;
-  transform: scale(1.05);
+  color: var(--sidebar-icon);
 }
 
 .menu-label {
   margin-left: 12px;
   font-size: 13px;
   font-weight: 500;
-  color: #6b5b47;
+  color: var(--sidebar-label);
   white-space: nowrap;
   opacity: 0;
   transform: translateX(-10px);
@@ -201,7 +196,7 @@
 }
 
 .menu-item.active .menu-label {
-  color: #5a4a38;
+  color: var(--sidebar-label);
   font-weight: 600;
 }
 

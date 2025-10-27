@@ -31,10 +31,11 @@ const Performance: React.FC = () => {
 
   const [cpuHistory, setCpuHistory] = useState<number[]>([]);
   const [memoryHistory, setMemoryHistory] = useState<number[]>([]);
-  const [diskHistory, setDiskHistory] = useState<{ [key: string]: number[] }>({});
+  const [, setDiskHistory] = useState<{ [key: string]: number[] }>({});
   const [gpuHistory, setGpuHistory] = useState<number[]>([]);
   const { setAlert } = useAlert(); // Use context for alerts
   const [gpuTick, setGpuTick] = useState(() => Number(localStorage.getItem('gpuTick')) || 0);
+  const [] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     let tick = gpuTick;
@@ -307,74 +308,62 @@ const Performance: React.FC = () => {
         )}
         {/* DISKS Section */}
         {activeTab === 'disks' && (
-          <div className="disk-section">
-            {disks.length === 0 ? (
-              <div className="disk-left">
-                <div className="disk-title">No disk information available</div>
-              </div>
-            ) : (
-              disks.map((disk) => (
-                <div key={disk.name + disk.mount_point} className="disk-row">
-                  <div className="disk-left">
-                    <div className="disk-title">
-                      {disk.mount_point === "C:\\" ? "Local Disk C:" : `${disk.name} (${disk.mount_point})`}
-                    </div>
-                    <div className="disk-brand-type">
-                      {disk.brand ? (
-                        <span>{disk.brand}</span>
-                      ) : (
-                        <span style={{ color: "#bbb", fontWeight: "normal" }}>Unknown Brand</span>
-                      )}
-                      {" "}
-                      {disk.type_ ? (
-                        <span>{disk.type_}</span>
-                      ) : (
-                        <span style={{ color: "#bbb", fontWeight: "normal" }}>Unknown Type</span>
-                      )}
-                    </div>
-                    <div className="disk-circle">
-                      <svg width="120" height="120">
-                        <circle cx="60" cy="60" r="54" stroke="#fff" strokeWidth="8" fill="none" />
-                        <circle
-                          cx="60"
-                          cy="60"
-                          r="54"
-                          stroke="#3B82F6"
-                          strokeWidth="8"
-                          fill="none"
-                          strokeDasharray={2 * Math.PI * 54}
-                          strokeDashoffset={2 * Math.PI * 54 * (1 - (disk.percentage ?? 0) / 100)}
-                          style={{ transition: 'stroke-dashoffset 0.5s' }}
-                        />
-                      </svg>
-                      <div className="disk-circle-text">
-                        {Math.round(disk.percentage)}%<br />
-                        Used
+          <div className="disk-section-modern">
+            <div className="disk-grid">
+              {/* Left: Disk cards */}
+              <div className="disk-list-column">
+                {disks.length === 0 ? (
+                  <div className="disk-empty">
+                    <div className="disk-title">No disk information available</div>
+                  </div>
+                ) : (
+                  disks.map((disk) => (
+                    <div key={disk.name + disk.mount_point} className="disk-card">
+                      <div className="disk-header">
+                        <span className="disk-name">
+                          {disk.mount_point === "C:\\" ? "Local Disk C:" : `${disk.name} (${disk.mount_point})`}
+                        </span>
+                        <span className="disk-type">{disk.type_ ?? "Unknown Type"}</span>
+                      </div>
+                      <div className="disk-usage-bar-outer">
+                        <div
+                          className="disk-usage-bar"
+                          style={{
+                            width: `${disk.percentage ?? 0}%`,
+                            background: "#3B82F6",
+                            height: "14px",
+                            borderRadius: "7px",
+                            transition: "width 0.5s"
+                          }}
+                        ></div>
+                      </div>
+                      <div className="disk-usage-details">
+                        <span className="disk-usage-percent">{Math.round(disk.percentage)}% used</span>
+                        <span className="disk-space">
+                          {`${Math.round(disk.available / (1024 * 1024 * 1024))} GB free of ${Math.round(disk.total / (1024 * 1024 * 1024))} GB`}
+                        </span>
                       </div>
                     </div>
-                    <div className="disk-details">
-                      <span className="disk-label">
-                        {`${Math.round(disk.available / (1024 * 1024 * 1024))} GB free of ${Math.round(disk.total / (1024 * 1024 * 1024))} GB`}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="disk-right">
-                    <div className="disk-usage-title">Disk Usage</div>
-                    <div className="disk-graph-container">
-                      <SimpleChart
-                        data={diskHistory[disk.name + disk.mount_point] || []}
-                        color="#3B82F6"
-                        size="small"
-                      />
-                    </div>
-                    <div className="disk-graph-label">60 seconds</div>
-                    {/* <div>Disk Composition</div>
-                    <div className="disk-composition-bar"></div> */}
-                    {/* Add more disk hardware details if available */}
+                  ))
+                )}
+              </div>
+              {/* Right: Pie chart and summary */}
+              <div className="disk-pie-column">
+                <DiskUsagePieChart disks={disks} />
+                <div className="disk-summary-card">
+                  <h3>Disk Summary</h3>
+                  <div>
+                    <strong>{disks.length}</strong> disks &nbsp;|&nbsp;
+                    <strong>
+                      {Math.round(disks.reduce((acc, d) => acc + (d.used ?? 0), 0) / (1024 * 1024 * 1024))}
+                    </strong> GB used &nbsp;|&nbsp;
+                    <strong>
+                      {Math.round(disks.reduce((acc, d) => acc + (d.available ?? 0), 0) / (1024 * 1024 * 1024))}
+                    </strong> GB free
                   </div>
                 </div>
-              ))
-           )}
+              </div>
+            </div>
           </div>
         )}
         {/* GPU Section */}
@@ -409,16 +398,17 @@ const Performance: React.FC = () => {
                     </div>
                   </div>
                   <div className="gpu-details">
+                    <div>Name: <span>{gpu.name ?? 'N/A'}</span></div>
                     <div>VRAM: <span>8192 MB</span></div>
                     <div>Driver Version: <span>{gpu.driver_version ?? 'N/A'}</span></div>
                     <div>VRAM Usage: <span>
-                      {gpu.vram_usage ? `${(gpu.vram_usage / 1024 / 1024).toFixed(1)} MB` : 'N/A'}
-                    </span></div>
+    {gpu.vram_usage ? `${(gpu.vram_usage / 1024 / 1024).toFixed(1)} MB` : 'N/A'}
+  </span></div>
                     <div>Temperature: <span>
-                      {typeof gpu.temperature === "number" && !isNaN(gpu.temperature)
-                        ? `${gpu.temperature.toFixed(1)} °C`
-                        : 'N/A'}
-                    </span></div>
+    {typeof gpu.temperature === "number" && !isNaN(gpu.temperature)
+      ? `${gpu.temperature.toFixed(1)} °C`
+      : 'N/A'}
+  </span></div>
                   </div>
                 </div>
                 <div className="gpu-right">
@@ -428,7 +418,18 @@ const Performance: React.FC = () => {
                     <div className="gpu-graph-label">60 seconds</div>
                   </div>
                   <div>GPU Composition</div>
-                  <div className="gpu-composition-bar"></div>
+                  <div className="gpu-composition-bar-outer">
+                    <div
+                      className="gpu-composition-bar"
+                      style={{
+                        width: `${gpu.usage ?? 0}%`,
+                        background: "#F59E0B",
+                        height: "16px",
+                        borderRadius: "8px",
+                        transition: "width 0.5s"
+                      }}
+                    ></div>
+                  </div>
                 </div>
               </>
             )}
@@ -536,6 +537,127 @@ function IpCell({ ip_addresses }: { ip_addresses: string[] }) {
         ? (ip_addresses && ip_addresses.length > 0 ? ip_addresses.join(', ') : "N/A")
         : "Hidden for privacy"}
     </span>
+  );
+}
+
+function DiskUsagePieChart({ disks }: { disks: any[] }) {
+  // Assign a color to each disk (repeat if more disks)
+  const colors = [
+    "#3B82F6", // blue
+    "#F59E0B", // amber
+    "#10B981", // green
+    "#EF4444", // red
+    "#FB923C", // indigo
+    "#F472B6", // pink
+    "#22D3EE", // cyan
+    "#A3E635", // lime
+    "#F43F5E", // rose
+    "#683308ff", // brown
+  ];
+
+  const totalSpace = disks.reduce((acc, d) => acc + (d.total ?? 0), 0);
+  let startAngle = 0;
+  const radius = 48;
+  const stroke = 18;
+  const center = 60;
+
+  // Helper to get arc for SVG
+  function describeArc(cx: number, cy: number, r: number, startAngle: number, endAngle: number) {
+    const start = polarToCartesian(cx, cy, r, endAngle);
+    const end = polarToCartesian(cx, cy, r, startAngle);
+    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+    return [
+      "M", start.x, start.y,
+      "A", r, r, 0, largeArcFlag, 0, end.x, end.y
+    ].join(" ");
+  }
+
+  function polarToCartesian(cx: number, cy: number, r: number, angle: number) {
+    const rad = (angle - 90) * Math.PI / 180.0;
+    return {
+      x: cx + (r * Math.cos(rad)),
+      y: cy + (r * Math.sin(rad))
+    };
+  }
+
+  // Calculate segments
+  const segments = disks.map((disk, i) => {
+    const percent = totalSpace > 0 ? (disk.used ?? 0) / totalSpace : 0;
+    const angle = percent * 360;
+    const segment = {
+      color: colors[i % colors.length],
+      startAngle,
+      endAngle: startAngle + angle,
+      percent: percent * 100,
+      disk,
+    };
+    startAngle += angle;
+    return segment;
+  });
+
+  return (
+    <div className="disk-pie-chart-container">
+      <svg width={120} height={120}>
+        {/* Background circle */}
+        <circle
+          cx={center}
+          cy={center}
+          r={radius}
+          stroke="#e5e7eb"
+          strokeWidth={stroke}
+          fill="none"
+        />
+        {/* Segments */}
+        {segments.map((seg, i) => (
+          <path
+            key={i}
+            d={describeArc(center, center, radius, seg.startAngle, seg.endAngle)}
+            stroke={seg.color}
+            strokeWidth={stroke}
+            fill="none"
+            strokeLinecap="butt"
+          />
+        ))}
+        {/* Center text: total used % */}
+        <text
+          x="50%"
+          y="50%"
+          textAnchor="middle"
+          dy="0.3em"
+          fontSize="1.2rem"
+          fontWeight="bold"
+          fill="#222"
+        >
+          {totalSpace > 0
+            ? Math.round(disks.reduce((acc, d) => acc + (d.used ?? 0), 0) / totalSpace * 100)
+            : 0
+          }%
+        </text>
+      </svg>
+      <div className="disk-pie-chart-label">
+        <span style={{ fontWeight: 600 }}>
+          {Math.round(disks.reduce((acc, d) => acc + (d.used ?? 0), 0) / (1024 * 1024 * 1024))} GB
+        </span>
+        {" used of "}
+        <span>
+          {Math.round(totalSpace / (1024 * 1024 * 1024))} GB
+        </span>
+      </div>
+      <div className="disk-pie-chart-legend">
+        {segments.map((seg, i) => (
+          <div key={i} className="disk-pie-legend-row">
+            <span
+              className="disk-pie-legend-color"
+              style={{ background: seg.color }}
+            ></span>
+            <span className="disk-pie-legend-label">
+              {seg.disk.mount_point === "C:\\" ? "Local Disk C:" : `${seg.disk.name} (${seg.disk.mount_point})`}
+              &nbsp;({Math.round(seg.percent)}%)
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
