@@ -31,7 +31,6 @@ const Performance: React.FC = () => {
   const [cpuHistory, setCpuHistory] = useState<number[]>([]);
   const [memoryHistory, setMemoryHistory] = useState<number[]>([]);
   const [diskHistory, setDiskHistory] = useState<{ [key: string]: number[] }>({});
-  const [gpuHistory, setGpuHistory] = useState<number[]>([]);
   const { setAlert } = useAlert(); // Use context for alerts
 
   useEffect(() => {
@@ -68,13 +67,10 @@ const Performance: React.FC = () => {
             return updated;
           });
         }
-        if (result.gpu) {
-          setGpu(result.gpu);
-          setGpuHistory(h =>
-            h.length === 0
-              ? Array(60).fill(result.gpu.usage ?? 0)
-              : [...h.slice(-59), result.gpu.usage ?? 0]
-          );
+        if (result.gpus && result.gpus.length > 0) {
+          setGpu(result.gpus[0]);
+        } else {
+          setGpu({});
         }
       } catch (e) {
         console.error(e);
@@ -350,43 +346,54 @@ const Performance: React.FC = () => {
         {/* GPU Section */}
         {activeTab === 'gpu' && (
           <div className="gpu-section">
-            <div className="gpu-left">
-              <div className="gpu-title">GPU</div>
-              <div className="gpu-circle">
-                <svg width="120" height="120">
-                  <circle cx="60" cy="60" r="54" stroke="#fff" strokeWidth="8" fill="none" />
-                  <circle
-                    cx="60"
-                    cy="60"
-                    r="54"
-                    stroke="#F59E0B"
-                    strokeWidth="8"
-                    fill="none"
-                    strokeDasharray={2 * Math.PI * 54}
-                    strokeDashoffset={2 * Math.PI * 54 * (1 - (gpu.usage ?? 0) / 100)}
-                    style={{ transition: 'stroke-dashoffset 0.5s' }}
-                  />
-                </svg>
-                <div className="gpu-circle-text">
-                  {Math.round(gpu.usage ?? 0)}%<br />
-                  Usage
+            {!gpu.name ? (
+              <div className="gpu-left">
+                <div className="gpu-title">No GPU information available</div>
+              </div>
+            ) : (
+              <>
+                <div className="gpu-left">
+                  <div className="gpu-title">GPU</div>
+                  <div className="gpu-circle">
+                    <svg width="120" height="120">
+                      <circle cx="60" cy="60" r="54" stroke="#fff" strokeWidth="8" fill="none" />
+                      <circle
+                        cx="60"
+                        cy="60"
+                        r="54"
+                        stroke="#F59E0B"
+                        strokeWidth="8"
+                        fill="none"
+                        strokeDasharray={2 * Math.PI * 54}
+                        strokeDashoffset={2 * Math.PI * 54 * (1 - 0 / 100)}
+                        style={{ transition: 'stroke-dashoffset 0.5s' }}
+                      />
+                    </svg>
+                    <div className="gpu-circle-text">
+                      0%<br />
+                      Usage
+                    </div>
+                  </div>
+                  <div className="gpu-details">
+                    <div>Name: <span>{gpu.name ?? 'N/A'}</span></div>
+                    <div>VRAM: <span>{gpu.ram ? `${(gpu.ram / 1024 / 1024).toFixed(1)} MB` : 'N/A'}</span></div>
+                    <div>Driver Version: <span>{gpu.driver_version ?? 'N/A'}</span></div>
+                    <div>VRAM Usage: <span>
+  {gpu.vram_usage ? `${(gpu.vram_usage / 1024 / 1024).toFixed(1)} MB` : 'N/A'}
+</span></div>
+                  </div>
                 </div>
-              </div>
-              <div className="gpu-details">
-                <div>Name: <span>{gpu.name ?? 'N/A'}</span></div>
-                {/* Add more GPU info if available */}
-              </div>
-            </div>
-            <div className="gpu-right">
-              <div className="gpu-usage-title">GPU Usage</div>
-              <div className="gpu-graph-container">
-                <SimpleChart data={gpuHistory} color="#F59E0B" size="large" />
-                <div className="gpu-graph-label">60 seconds</div>
-              </div>
-              <div>GPU Composition</div>
-              <div className="gpu-composition-bar"></div>
-              {/* Add more GPU hardware details if available */}
-            </div>
+                <div className="gpu-right">
+                  <div className="gpu-usage-title">GPU Usage</div>
+                  <div className="gpu-graph-container">
+                    <SimpleChart data={[]} color="#F59E0B" size="large" />
+                    <div className="gpu-graph-label">60 seconds</div>
+                  </div>
+                  <div>GPU Composition</div>
+                  <div className="gpu-composition-bar"></div>
+                </div>
+              </>
+            )}
           </div>
         )}
         {/* NETWORK Section */}

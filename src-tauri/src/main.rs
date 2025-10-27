@@ -3,10 +3,6 @@
 
 use serde::Serialize;
 use sysinfo::{NetworkExt, System, SystemExt, CpuExt, DiskExt, ProcessExt};
-#[cfg(target_os = "windows")]
-use wmi::{COMLibrary, WMIConnection};
-#[cfg(target_os = "windows")]
-use serde::Deserialize;
 use get_if_addrs::{get_if_addrs, IfAddr, Ifv4Addr, Ifv6Addr}; // Add this
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -46,6 +42,8 @@ struct GpuInfo {
     ram: Option<u32>,
     #[serde(rename = "driver_version")]
     driver_version: Option<String>,
+    #[serde(rename = "vram_usage")]
+    vram_usage: Option<u64>, // in bytes
 }
 
 #[derive(Serialize)]
@@ -54,17 +52,6 @@ struct SystemOverview {
     cpu: CpuInfo,
     disks: Vec<DiskInfo>,
     gpus: Vec<GpuInfo>,
-}
-
-#[cfg(target_os = "windows")]
-#[derive(Deserialize, Debug)]
-struct Win32VideoController {
-    #[serde(rename = "Name")]
-    name: String,
-    #[serde(rename = "AdapterRAM")]
-    adapter_ram: Option<u32>,
-    #[serde(rename = "DriverVersion")]
-    driver_version: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -142,21 +129,12 @@ fn fetch_system_overview() -> SystemOverview {
         }
     }).collect();
 
-    // GPU info via WMI (Windows only)
+    // GPU info via DXGI (Windows only)
     let gpus = if cfg!(target_os = "windows") {
-        let com_con = COMLibrary::new().ok();
-        if let Some(com_con) = com_con {
-            let wmi_con = WMIConnection::new(com_con.into()).ok();
-            if let Some(wmi_con) = wmi_con {
-                let results: Vec<Win32VideoController> = wmi_con.query().unwrap_or_default();
-                results.into_iter().map(|gpu| GpuInfo {
-                    name: gpu.name,
-                    ram: gpu.adapter_ram,
-                    driver_version: gpu.driver_version,
-                }).collect()
-            } else {
-                vec![]
-            }
+        let all_gpus = fetch_gpus_dxgi();
+        // Only keep the first GPU (main GPU)
+        if let Some(main_gpu) = all_gpus.into_iter().next() {
+            vec![main_gpu]
         } else {
             vec![]
         }
@@ -177,7 +155,7 @@ fn fetch_system_overview() -> SystemOverview {
             cores: cpu_cores,
         },
         disks,
-        gpus,
+        gpus, // Only main GPU included
     }
 }
 
@@ -392,4 +370,58 @@ fn main() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(target_os = "windows")]
+fn fetch_gpus_dxgi() -> Vec<GpuInfo> {
+    use windows::Win32::Graphics::Dxgi::{
+        CreateDXGIFactory1, IDXGIFactory1, IDXGIAdapter1, IDXGIAdapter3, DXGI_ADAPTER_DESC1,
+        DXGI_QUERY_VIDEO_MEMORY_INFO, DXGI_MEMORY_SEGMENT_GROUP_LOCAL,
+    };
+    use windows::core::{Result, Interface};
+
+    let mut gpus = Vec::new();
+    unsafe {
+        let factory: IDXGIFactory1 = CreateDXGIFactory1::<IDXGIFactory1>().unwrap();
+        let mut i = 0;
+        loop {
+            let adapter: Result<IDXGIAdapter1> = factory.EnumAdapters1(i);
+            if let Ok(adapter) = adapter {
+                let mut desc: DXGI_ADAPTER_DESC1 = std::mem::zeroed();
+                if adapter.GetDesc1(&mut desc).is_ok() {
+                    let name = String::from_utf16_lossy(
+                        &desc.Description
+                            .iter()
+                            .take_while(|&&c| c != 0)
+                            .cloned()
+                            .collect::<Vec<u16>>(),
+                    );
+                    let ram = Some(desc.DedicatedVideoMemory as u32);
+
+                    let mut vram_usage: Option<u64> = None;
+                    if let Ok(adapter3) = adapter.cast::<IDXGIAdapter3>() {
+                        let mut info: DXGI_QUERY_VIDEO_MEMORY_INFO = std::mem::zeroed();
+                        if adapter3.QueryVideoMemoryInfo(
+                            0,
+                            DXGI_MEMORY_SEGMENT_GROUP_LOCAL,
+                            &mut info,
+                        ).is_ok() {
+                            vram_usage = Some(info.CurrentUsage);
+                        }
+                    }
+
+                    gpus.push(GpuInfo {
+                        name,
+                        ram,
+                        driver_version: None,
+                        vram_usage,
+                    });
+                }
+                i += 1;
+            } else {
+                break;
+            }
+        }
+    }
+    gpus
 }
