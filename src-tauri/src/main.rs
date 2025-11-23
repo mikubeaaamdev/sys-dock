@@ -4,6 +4,7 @@
 use serde::Serialize;
 use sysinfo::{NetworkExt, System, SystemExt, CpuExt, DiskExt, ProcessExt};
 use get_if_addrs::{get_if_addrs, IfAddr, Ifv4Addr, Ifv6Addr}; // Add this
+// HashMap not needed anymore
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
@@ -77,9 +78,15 @@ struct NetworkInterface {
     status: String,
     bytes_received: u64,
     bytes_transmitted: u64,
+    packets_received: u64,
+    packets_transmitted: u64,
+    errors: u64,
+    drops: u64,
     ip_addresses: Vec<String>,      // NEW
     mac_address: Option<String>,    // NEW
     interface_type: Option<String>, // NEW
+    link_speed_mbps: Option<u32>,   // NEW
+    last_updated_unix: u64,         // NEW
 }
 
 #[derive(Serialize)]
@@ -332,41 +339,100 @@ fn fetch_network_info() -> NetworkInfo {
     sys.refresh_networks_list();
     sys.refresh_networks();
 
-    let mut interfaces = Vec::new();
-
-    // Collect IPs, MAC, and type using get_if_addrs
-    let if_addrs = get_if_addrs().unwrap_or_default();
-
-    for (name, data) in sys.networks() {
-        let status = if data.received() > 0 || data.transmitted() > 0 {
-            "Connected".to_string()
-        } else {
-            "Disconnected".to_string()
-        };
-
-        // Find matching interface info
-        let mut ip_addresses = Vec::new();
-        let mac_address: Option<String> = None;
-        let interface_type: Option<String> = None;
-
-        for iface in &if_addrs {
-            if iface.name == *name {
-                match &iface.addr {
-                    IfAddr::V4(Ifv4Addr { ip, .. }) => ip_addresses.push(ip.to_string()),
-                    IfAddr::V6(Ifv6Addr { ip, .. }) => ip_addresses.push(ip.to_string()),
+    // collect addresses per interface name (flattened)
+    let mut addrs: Vec<(String, String)> = Vec::new();
+    if let Ok(if_addrs) = get_if_addrs() {
+        for iface in if_addrs {
+            match iface.addr {
+                IfAddr::V4(Ifv4Addr { ip, .. }) => {
+                    addrs.push((iface.name.clone(), ip.to_string()))
                 }
-                // MAC and interface_type not available from get_if_addrs
+                IfAddr::V6(Ifv6Addr { ip, .. }) => {
+                    addrs.push((iface.name.clone(), ip.to_string()))
+                }
             }
         }
+    }
+
+    // normalizer: remove non-alphanumeric and lowercase for fuzzy matching
+    fn norm(s: &str) -> String {
+        s.chars().filter(|c| c.is_alphanumeric()).collect::<String>().to_lowercase()
+    }
+
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
+    let mut interfaces = Vec::new();
+
+    for (name, data) in sys.networks() {
+        let packets_received = 0u64;
+        let packets_transmitted = 0u64;
+        let errors = 0u64;
+        let drops = 0u64;
+
+        // fuzzy-match addresses collected from get_if_addrs
+        let n_norm = norm(name);
+        let mut ip_addresses: Vec<String> = addrs
+            .iter()
+            .filter_map(|(iface_name, ip)| {
+                let i_norm = norm(iface_name);
+                if i_norm == n_norm || i_norm.contains(&n_norm) || n_norm.contains(&i_norm) {
+                    Some(ip.clone())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        // looser match if nothing
+        if ip_addresses.is_empty() {
+            ip_addresses = addrs
+                .iter()
+                .filter_map(|(iface_name, ip)| {
+                    let i_norm = norm(iface_name);
+                    if i_norm.starts_with(&n_norm) || i_norm.ends_with(&n_norm) || n_norm.starts_with(&i_norm) || n_norm.ends_with(&i_norm) {
+                        Some(ip.clone())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+        }
+
+        // final fallback: include all non-loopback addresses (so UI sees something)
+        if ip_addresses.is_empty() {
+            ip_addresses = addrs
+                .iter()
+                .filter_map(|(_, ip)| {
+                    if !ip.starts_with("127.") && !ip.starts_with("::1") { Some(ip.clone()) } else { None }
+                })
+                .collect();
+        }
+
+        ip_addresses.sort();
+        ip_addresses.dedup();
+
+        // Debug log so you can see mapping in console (rebuild & check Tauri logs)
+        println!("fetch_network_info: iface={} ips={:?}", name, ip_addresses);
+
+        let status = if !ip_addresses.is_empty() { "Connected".to_string() } else { "Disconnected".to_string() };
 
         interfaces.push(NetworkInterface {
             name: name.to_string(),
             status,
             bytes_received: data.received(),
             bytes_transmitted: data.transmitted(),
+            packets_received,
+            packets_transmitted,
+            errors,
+            drops,
             ip_addresses,
-            mac_address,         // Not available
-            interface_type,      // Not available
+            mac_address: None,
+            interface_type: None,
+            link_speed_mbps: None,
+            last_updated_unix: now,
         });
     }
 
@@ -403,6 +469,40 @@ fn get_disk_health(disk_path: String) -> Option<String> {
     }
     None
 }
+#[allow(dead_code)]
+#[tauri::command]
+fn check_alerts(cpu_threshold: f32, ram_threshold: f64, disk_threshold: f64) -> Vec<String> {
+    let mut sys = System::new_all();
+    sys.refresh_all();
+
+    let mut alerts = Vec::new();
+
+    let cpu_usage = sys.global_cpu_info().cpu_usage();
+    if cpu_usage > cpu_threshold {
+        alerts.push(format!("High CPU usage: {:.1}%", cpu_usage));
+    }
+
+    let total_memory = sys.total_memory() as f64;
+    let used_memory = sys.used_memory() as f64;
+    let ram_usage = if total_memory > 0.0 { (used_memory / total_memory) * 100.0 } else { 0.0 };
+    if ram_usage > ram_threshold {
+        alerts.push(format!("Memory critically low: {:.1}%", ram_usage));
+    }
+
+    for disk in sys.disks() {
+        let total = disk.total_space() as f64;
+        let used = (total - disk.available_space() as f64) / total * 100.0;
+        if used > disk_threshold {
+            alerts.push(format!(
+                "Disk {} space critically low: {:.1}%",
+                disk.name().to_string_lossy(),
+                used
+            ));
+        }
+    }
+
+    alerts
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 fn main() {
@@ -413,7 +513,8 @@ fn main() {
             fetch_processes,
             fetch_network_info,
             end_process, // <-- Add this line
-            get_disk_health
+            get_disk_health,
+            clean_storage // <-- Add this line
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -517,4 +618,48 @@ fn fetch_cpu_wmi() -> (Option<u64>, Option<f32>, Option<u32>) {
         }
     }
     (speed, temp, threads)
+}
+
+#[tauri::command]
+fn clean_storage() -> Result<String, String> {
+    #[cfg(target_os = "windows")]
+    {
+        use std::fs;
+        use std::env;
+        use std::process::Command;
+
+        // Clean Temp folder
+        let temp_dir = env::temp_dir();
+        let mut temp_deleted = 0;
+        if let Ok(entries) = fs::read_dir(&temp_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                let _ = if path.is_dir() {
+                    fs::remove_dir_all(&path)
+                } else {
+                    fs::remove_file(&path)
+                };
+                temp_deleted += 1;
+            }
+        }
+
+        // Clean Recycle Bin using PowerShell
+        let output = Command::new("powershell")
+            .args(&["-Command", "Clear-RecycleBin -Force"])
+            .output();
+
+        let recycle_result = match output {
+            Ok(_) => "Recycle Bin emptied.",
+            Err(_) => "Failed to empty Recycle Bin.",
+        };
+
+        Ok(format!(
+            "Cleaned {} items from Temp folder. {}",
+            temp_deleted, recycle_result
+        ))
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        Ok("Clean Storage is only supported on Windows.".to_string())
+    }
 }

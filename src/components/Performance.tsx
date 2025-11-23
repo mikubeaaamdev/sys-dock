@@ -1,9 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { useLocation } from 'react-router-dom'; // Add this import
 import { useAlert } from '../context/AlertContext';
 import './Performance.css';
 import { getSimulatedGpuUsage } from './gpuSim';
+import Sidebar from './Sidebar'; // Add this import
+
+function ConfirmDialog({ open, onConfirm, onCancel }: { open: boolean, onConfirm: () => void, onCancel: () => void }) {
+  if (!open) return null;
+  return (
+    <div className="confirm-dialog-backdrop">
+      <div className="confirm-dialog">
+        <h3>Clean Storage</h3>
+        <p>
+          This will permanently delete the contents of your Recycle Bin and Temp folder.<br />
+          Are you sure you want to proceed?
+        </p>
+        <div className="confirm-dialog-actions">
+          <button className="confirm-btn" onClick={onConfirm}>Yes, Clean</button>
+          <button className="cancel-btn" onClick={onCancel}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const Performance: React.FC = () => {
   const location = useLocation(); // Get current route
@@ -36,6 +56,12 @@ const Performance: React.FC = () => {
   const { setAlert } = useAlert(); // Use context for alerts
   const [gpuTick, setGpuTick] = useState(() => Number(localStorage.getItem('gpuTick')) || 0);
   const [] = useState<{ [key: string]: string }>({});
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [cleanSuccess, setCleanSuccess] = useState<string | null>(null);
+
+  // network rate history and previous snapshot for diffing
+  const [netHistory, setNetHistory] = useState<{ [ifName: string]: { rx: number[]; tx: number[] } }>({});
+  const netPrevRef = useRef<{ [ifName: string]: { rx: number; tx: number; ts: number } }>({});
 
   useEffect(() => {
     let tick = gpuTick;
@@ -111,19 +137,56 @@ const Performance: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // replace simple 5s fetchNetwork effect with per-second rate + 60s history
   useEffect(() => {
-    const fetchNetwork = async () => {
+    const fetchNetworkRates = async () => {
       try {
         const result = await invoke<any>('fetch_network_info');
+        const now = Date.now();
+        const updatedHistory = { ...netHistory };
+        (result.interfaces ?? []).forEach((iface: any) => {
+          const key = iface.name ?? `iface-${Math.random()}`;
+          const prev = netPrevRef.current[key];
+          let rxRate = 0;
+          let txRate = 0;
+          if (prev) {
+            const dt = Math.max(0.5, (now - prev.ts) / 1000.0);
+            rxRate = ((iface.bytes_received ?? 0) - prev.rx) / dt; // bytes/sec
+            txRate = ((iface.bytes_transmitted ?? 0) - prev.tx) / dt;
+            if (rxRate < 0) rxRate = 0;
+            if (txRate < 0) txRate = 0;
+          }
+          if (!updatedHistory[key]) updatedHistory[key] = { rx: Array(60).fill(0), tx: Array(60).fill(0) };
+          updatedHistory[key].rx = [...(updatedHistory[key].rx.slice(-59)), rxRate];
+          updatedHistory[key].tx = [...(updatedHistory[key].tx.slice(-59)), txRate];
+          netPrevRef.current[key] = { rx: iface.bytes_received ?? 0, tx: iface.bytes_transmitted ?? 0, ts: now };
+        });
+        setNetHistory(updatedHistory);
         setNetworkInfo(result);
       } catch (e) {
         setNetworkInfo({ interfaces: [] });
       }
     };
-    fetchNetwork();
-    const interval = setInterval(fetchNetwork, 5000);
+
+    fetchNetworkRates();
+    const interval = setInterval(fetchNetworkRates, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ensure netHistory has an entry for every interface (pre-seed) so chart always receives length-60 arrays
+  useEffect(() => {
+    const updated = { ...netHistory };
+    let changed = false;
+    (networkInfo.interfaces ?? []).forEach((iface: any, i: number) => {
+      const key = iface.name ?? `iface-${i}`;
+      if (!updated[key]) {
+        updated[key] = { rx: Array(60).fill(0), tx: Array(60).fill(0) };
+        changed = true;
+      }
+    });
+    // remove stale entries optionally (keep it if you want history across reconnects)
+    if (changed) setNetHistory(updated);
+  }, [networkInfo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Save tab on change
   useEffect(() => {
@@ -133,9 +196,16 @@ const Performance: React.FC = () => {
   // When route changes to /performance, restore last tab or default to 'cpu'
   useEffect(() => {
     if (location.pathname === '/performance') {
-      setActiveTab(localStorage.getItem('performanceTab') || 'cpu');
+      // If navigation state has a tab, use it; otherwise use localStorage or default
+      const navTab = (location.state as any)?.tab;
+      if (navTab) {
+        setActiveTab(navTab);
+        localStorage.setItem('performanceTab', navTab);
+      } else {
+        setActiveTab(localStorage.getItem('performanceTab') || 'cpu');
+      }
     }
-  }, [location.pathname]);
+  }, [location.pathname, location.state]);
 
   // Only set alert in context, do NOT render any alert bar here!
   useEffect(() => {
@@ -150,6 +220,28 @@ const Performance: React.FC = () => {
     }
   }, [cpu, memory, disks, setAlert]);
 
+  const handleCleanStorage = async () => {
+    setShowConfirm(true);
+  };
+
+  const confirmCleanStorage = async () => {
+    setShowConfirm(false);
+    try {
+      const result = await invoke<string>('clean_storage');
+      setCleanSuccess(result);
+      setAlert(result);
+      setTimeout(() => setCleanSuccess(null), 5000); // Hide after 5s
+    } catch (e: any) {
+      setCleanSuccess("Failed to clean storage: " + (e?.toString() ?? ""));
+      setAlert("Failed to clean storage: " + (e?.toString() ?? ""));
+      setTimeout(() => setCleanSuccess(null), 5000);
+    }
+  };
+
+  const cancelCleanStorage = () => {
+    setShowConfirm(false);
+  };
+
   const tabs = [
     { key: 'cpu', label: 'CPU' },
     { key: 'memory', label: 'MEMORY' },
@@ -158,8 +250,19 @@ const Performance: React.FC = () => {
     { key: 'network', label: 'NETWORK' } // <-- Add this tab
   ];
 
+  // pretty/compact formatter for bytes/sec
+  const fmtSpeed = (bytesPerSec: number) => {
+    if (!bytesPerSec || bytesPerSec <= 0) return '0 B/s';
+    const units = ['B/s','KB/s','MB/s','GB/s','TB/s'];
+    let i = 0;
+    let v = bytesPerSec;
+    while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+    return `${v.toFixed(v >= 10 ? 1 : 2)} ${units[i]}`;
+  };
+
   return (
     <div className="performance-container">
+      <Sidebar showConfirm={showConfirm} /> {/* Pass showConfirm here */}
       <div className="performance-header">
         <h1 className="performance-title">PERFORMANCE</h1>
       </div>
@@ -180,9 +283,6 @@ const Performance: React.FC = () => {
           <div className="perf-section">
             <div className="perf-left cpu-left">
               <div className="perf-title">CPU</div>
-              {cpu.name && (
-                <div className="perf-cpu-name">{cpu.name}</div>
-              )}
               <div className="perf-circle">
                 <svg width="120" height="120">
                   <circle cx="60" cy="60" r="54" stroke="#fff" strokeWidth="8" fill="none" />
@@ -190,7 +290,7 @@ const Performance: React.FC = () => {
                     cx="60"
                     cy="60"
                     r="54"
-                    stroke="#ff6b6b"
+                    stroke={getUsageColor(cpu.usage ?? 0)}
                     strokeWidth="8"
                     fill="none"
                     strokeDasharray={2 * Math.PI * 54}
@@ -204,6 +304,7 @@ const Performance: React.FC = () => {
                 </div>
               </div>
               <div className="perf-details">
+                <div>CPU Name: <span>{cpu.name ?? 'N/A'}</span></div>
                 <div>Utilization: <span>{Math.round(cpu.usage ?? 0)}%</span></div>
                 <div>Speed: <span>{cpu.frequency ?? 'N/A'} MHz</span></div>
                 <div>Cores: <span>{cpu.cores ?? 'N/A'}</span></div>
@@ -248,7 +349,7 @@ const Performance: React.FC = () => {
                     cx="60"
                     cy="60"
                     r="54"
-                    stroke="#22c55e"
+                    stroke={getUsageColor(memory.percentage ?? 0)}
                     strokeWidth="8"
                     fill="none"
                     strokeDasharray={2 * Math.PI * 54}
@@ -285,7 +386,7 @@ const Performance: React.FC = () => {
             <div className="memory-right">
               <div className="memory-usage-title">Memory Usage</div>
               <div className="memory-graph-container">
-                <SimpleChart data={memoryHistory} color="#EF4444" size="large" />
+                <SimpleChart data={memoryHistory} color="#22c55e" size="large" />
                 <div className="memory-graph-label">60 seconds</div>
               </div>
               <div>Memory Composition</div>
@@ -308,61 +409,75 @@ const Performance: React.FC = () => {
         )}
         {/* DISKS Section */}
         {activeTab === 'disks' && (
-          <div className="disk-section-modern">
-            <div className="disk-grid">
-              {/* Left: Disk cards */}
-              <div className="disk-list-column">
-                {disks.length === 0 ? (
-                  <div className="disk-empty">
-                    <div className="disk-title">No disk information available</div>
-                  </div>
-                ) : (
-                  disks.map((disk) => (
-                    <div key={disk.name + disk.mount_point} className="disk-card">
-                      <div className="disk-header">
-                        <span className="disk-name">
-                          {disk.mount_point === "C:\\" ? "Local Disk C:" : `${disk.name} (${disk.mount_point})`}
-                        </span>
-                        <span className="disk-type">{disk.type_ ?? "Unknown Type"}</span>
-                      </div>
-                      <div className="disk-usage-bar-outer">
-                        <div
-                          className="disk-usage-bar"
-                          style={{
-                            width: `${disk.percentage ?? 0}%`,
-                            background: "#3B82F6",
-                            height: "14px",
-                            borderRadius: "7px",
-                            transition: "width 0.5s"
-                          }}
-                        ></div>
-                      </div>
-                      <div className="disk-usage-details">
-                        <span className="disk-usage-percent">{Math.round(disk.percentage)}% used</span>
-                        <span className="disk-space">
-                          {`${Math.round(disk.available / (1024 * 1024 * 1024))} GB free of ${Math.round(disk.total / (1024 * 1024 * 1024))} GB`}
-                        </span>
-                      </div>
+          <div className="disk-section-modern disk-grid">
+            {/* Left: Disk cards */}
+            <div className="disk-list-column">
+              {disks.length === 0 ? (
+                <div className="disk-empty">
+                  <div className="disk-title">No disk information available</div>
+                </div>
+              ) : (
+                disks.map((disk) => (
+                  <div key={disk.name + disk.mount_point} className="disk-card">
+                    <div className="disk-header">
+                      <span className="disk-name">
+                        {disk.mount_point === "C:\\" ? "Local Disk C:" : `${disk.name} (${disk.mount_point})`}
+                      </span>
+                      <span className="disk-type">{disk.type_ ?? "Unknown Type"}</span>
                     </div>
-                  ))
-                )}
-              </div>
-              {/* Right: Pie chart and summary */}
-              <div className="disk-pie-column">
-                <DiskUsagePieChart disks={disks} />
-                <div className="disk-summary-card">
-                  <h3>Disk Summary</h3>
-                  <div>
-                    <strong>{disks.length}</strong> disks &nbsp;|&nbsp;
-                    <strong>
-                      {Math.round(disks.reduce((acc, d) => acc + (d.used ?? 0), 0) / (1024 * 1024 * 1024))}
-                    </strong> GB used &nbsp;|&nbsp;
-                    <strong>
-                      {Math.round(disks.reduce((acc, d) => acc + (d.available ?? 0), 0) / (1024 * 1024 * 1024))}
-                    </strong> GB free
+                    <div className="disk-usage-bar-outer">
+                      <div
+                        className="disk-usage-bar"
+                        style={{
+                          width: `${disk.percentage ?? 0}%`,
+                          background: "#3B82F6",
+                          height: "14px",
+                          borderRadius: "7px",
+                          transition: "width 0.5s"
+                        }}
+                      ></div>
+                    </div>
+                    <div className="disk-usage-details">
+                      <span className="disk-usage-percent">{Math.round(disk.percentage)}% used</span>
+                      <span className="disk-space">
+                        {`${Math.round(disk.available / (1024 * 1024 * 1024))} GB free of ${Math.round(disk.total / (1024 * 1024 * 1024))} GB`}
+                      </span>
+                    </div>
                   </div>
+                ))
+              )}
+            </div>
+            {/* Right: Pie chart, summary, and clean button */}
+            <div className="disk-pie-column">
+              <DiskUsagePieChart disks={disks} />
+              <div className="disk-summary-card">
+                <h3>Disk Summary</h3>
+                <div>
+                  <strong>{disks.length}</strong> disks &nbsp;|&nbsp;
+                  <strong>
+                    {Math.round(disks.reduce((acc, d) => acc + (d.used ?? 0), 0) / (1024 * 1024 * 1024))}
+                  </strong> GB used &nbsp;|&nbsp;
+                  <strong>
+                    {Math.round(disks.reduce((acc, d) => acc + (d.available ?? 0), 0) / (1024 * 1024 * 1024))}
+                  </strong> GB free
                 </div>
               </div>
+              <button
+                className="styled-clean-btn small"
+                onClick={handleCleanStorage}
+              >
+                Clean Storage
+              </button>
+              <ConfirmDialog
+                open={showConfirm}
+                onConfirm={confirmCleanStorage}
+                onCancel={cancelCleanStorage}
+              />
+              {cleanSuccess && (
+                <div className="clean-success-message">
+                  {cleanSuccess}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -384,7 +499,7 @@ const Performance: React.FC = () => {
                         cx="60"
                         cy="60"
                         r="54"
-                        stroke="#F59E0B"
+                        stroke={getUsageColor(gpu.usage ?? 0)}
                         strokeWidth="8"
                         fill="none"
                         strokeDasharray={2 * Math.PI * 54}
@@ -423,7 +538,7 @@ const Performance: React.FC = () => {
                       className="gpu-composition-bar"
                       style={{
                         width: `${gpu.usage ?? 0}%`,
-                        background: "#F59E0B",
+                        background: "#f59e0b",
                         height: "16px",
                         borderRadius: "8px",
                         transition: "width 0.5s"
@@ -435,45 +550,95 @@ const Performance: React.FC = () => {
             )}
           </div>
         )}
-        {/* NETWORK Section */}
+        {/* NETWORK Section - modern card layout */}
         {activeTab === 'network' && (
-          <div className="network-section">
-            <h2>Network Interfaces</h2>
-            <table className="network-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Status</th>
-                  <th>Bytes Received</th>
-                  <th>Bytes Sent</th>
-                  <th>IP Address</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(networkInfo.interfaces ?? []).map((iface, idx) => (
-                  <tr key={idx}>
-                    <td>{iface.name}</td>
-                    <td>
-                      <span className={iface.status === "Connected" ? "status-connected" : "status-disconnected"}>
-                        {iface.status}
-                      </span>
-                    </td>
-                    <td>{iface.bytes_received}</td>
-                    <td>{iface.bytes_transmitted}</td>
-                    <td>
-                      <IpCell ip_addresses={iface.ip_addresses ?? []} />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="network-section modern-network">
+            <div className="network-interfaces-grid">
+              {(networkInfo.interfaces ?? []).map((iface, idx) => {
+                const key = iface.name ?? `iface-${idx}`;
+                const hist = netHistory[key] ?? { rx: Array(60).fill(0), tx: Array(60).fill(0) };
+                const rxNow = hist.rx[hist.rx.length - 1] ?? 0;
+                const txNow = hist.tx[hist.tx.length - 1] ?? 0;
+                const rxMbps = (rxNow * 8) / 1_000_000;
+                const txMbps = (txNow * 8) / 1_000_000;
+                return (
+                  <div className="net-card" key={key} data-theme={document.documentElement.getAttribute('data-theme') || 'light'}>
+                    <div className="net-card-header">
+                      <div className="net-title">
+                        <div className="net-name">{iface.name}</div>
+                        <div className={`net-status ${iface.status === "Connected" ? 'connected' : 'disconnected'}`}>{iface.status}</div>
+                      </div>
+                      <div className="net-actions">
+                        <button className="net-action-btn" onClick={() => {
+                          const target = (iface.ip_addresses && iface.ip_addresses[0]) || '8.8.8.8';
+                          invoke('ping_host', { host: target, timeout_ms: 1200 }).then((r:any) => {
+                            if (r != null) setAlert(`Ping ${target}: ${String(r)} ms`);
+                            else setAlert(`Ping ${target}: timed out`);
+                            setTimeout(()=>setAlert(null), 3000);
+                          }).catch(e => setAlert(`Ping failed: ${String(e)}`));
+                        }}>Ping</button>
+                      </div>
+                    </div>
+
+                    <div className="net-card-body">
+                      <div className="net-chart">
+                        <SimpleChart data={hist.rx.map(v => Math.min(100, (v*8)/1_000_000))} color="#3B82F6" size="small" />
+                        <div className="net-chart-legend">
+                          <div className="net-legend-item rx">↓ {rxMbps >= 0.1 ? `${rxMbps.toFixed(2)} Mbps` : fmtSpeed(rxNow)}</div>
+                          <div className="net-legend-item tx">↑ {txMbps >= 0.1 ? `${txMbps.toFixed(2)} Mbps` : fmtSpeed(txNow)}</div>
+                        </div>
+                      </div>
+
+                      <div className="net-details">
+                        <div className="net-row"><strong>IP</strong> <IpCell ip_addresses={iface.ip_addresses ?? []} /></div>
+                        <div className="net-row"><strong>Packets</strong> <span>{(iface.packets_received ?? 0).toLocaleString()} / {(iface.packets_transmitted ?? 0).toLocaleString()}</span></div>
+                        <div className="net-row"><strong>Errors / Drops</strong> <span>{(iface.errors ?? 0)} / {(iface.drops ?? 0)}</span></div>
+                        <div className="net-row small-muted">Updated: {iface.last_updated_unix ? new Date(iface.last_updated_unix * 1000).toLocaleTimeString() : '—'}</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="network-summary">
+              <h3>Network Summary</h3>
+              <div className="network-summary-grid">
+                <div className="network-stat">
+                  <div className="stat-label">Interfaces</div>
+                  <div className="stat-value">{(networkInfo.interfaces ?? []).length}</div>
+                </div>
+                <div className="network-stat">
+                  <div className="stat-label">Total RX</div>
+                  <div className="stat-value">{fmtSpeed(Object.values(netHistory).reduce((s, h) => s + (h.rx[h.rx.length-1]||0), 0))}</div>
+                </div>
+                <div className="network-stat">
+                  <div className="stat-label">Total TX</div>
+                  <div className="stat-value">{fmtSpeed(Object.values(netHistory).reduce((s, h) => s + (h.tx[h.tx.length-1]||0), 0))}</div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={showConfirm}
+        onConfirm={confirmCleanStorage}
+        onCancel={cancelCleanStorage}
+      />
     </div>
   );
 };
 
+// Helper function for usage color
+function getUsageColor(usage: number) {
+  if (usage < 50) return "#3B82F6";      // blue for low usage
+  if (usage < 80) return "#F59E0B";      // yellow for medium usage
+  return "#FF6B6B";                      // red for high usage
+}
+
+// Small SimpleChart tweak to respect theme variables (use CSS vars for grid/bg so chart is visible in dark)
 function SimpleChart({ data, color, size = "large" }: { data: number[]; color: string; size?: "large" | "small" }) {
   const width = size === "large" ? 1000 : 220;
   const height = size === "large" ? 500 : 80;
@@ -484,9 +649,12 @@ function SimpleChart({ data, color, size = "large" }: { data: number[]; color: s
   const points = chartData.map((v, i) => `${(i / 59) * width},${height - (v / 100) * height}`).join(' ');
   const areaPoints = `${chartData.map((v, i) => `${(i / 59) * width},${height - (v / 100) * height}`).join(' ')} ${width},${height} 0,${height}`;
 
+  // use CSS variables --chart-bg and --chart-grid; fallback to sensible defaults
+  const gridColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-grid')?.trim() || '#e5e7eb';
+  const bgColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-bg')?.trim() || (document.documentElement.getAttribute('data-theme') === 'dark' ? '#0b1220' : '#f8f9fa');
+
   return (
-    <svg width={width} height={height} style={{ background: "#f8f9fa", borderRadius: 8 }}>
-      {/* Grid */}
+    <svg width={width} height={height} style={{ background: bgColor, borderRadius: 8 }}>
       {[...Array(gridX)].map((_, i) => (
         <line
           key={`vx${i}`}
@@ -494,7 +662,7 @@ function SimpleChart({ data, color, size = "large" }: { data: number[]; color: s
           y1={0}
           x2={(i / (gridX - 1)) * width}
           y2={height}
-          stroke="#e5e7eb"
+          stroke={gridColor}
           strokeWidth={1}
         />
       ))}
@@ -505,37 +673,39 @@ function SimpleChart({ data, color, size = "large" }: { data: number[]; color: s
           y1={(i / (gridY - 1)) * height}
           x2={width}
           y2={(i / (gridY - 1)) * height}
-          stroke="#e5e7eb"
+          stroke={gridColor}
           strokeWidth={1}
         />
       ))}
-      {/* Area fill */}
-      <polygon
-        points={areaPoints}
-        fill={color + "22"}
-      />
-      {/* Line */}
-      <polyline
-        fill="none"
-        stroke={color}
-        strokeWidth="2"
-        points={points}
-      />
+      <polygon points={areaPoints} fill={color + "22"} />
+      <polyline fill="none" stroke={color} strokeWidth="2" points={points} />
     </svg>
   );
 }
 
 function IpCell({ ip_addresses }: { ip_addresses: string[] }) {
-  const [revealed, setRevealed] = useState(false);
+  // respect global user preference (settings) for auto-reveal
+  const defaultReveal = typeof window !== 'undefined' && localStorage.getItem('reveal_ips') === 'true';
+  const [revealed, setRevealed] = useState<boolean>(defaultReveal);
+
+  // sanitize addresses (remove falsy entries)
+  const addresses = (ip_addresses ?? []).filter(Boolean);
+
+  const display = revealed
+    ? (addresses.length > 0 ? addresses.join(', ') : 'N/A')
+    : 'Hidden for privacy';
+
   return (
     <span
-      style={{ color: revealed ? "#222" : "#bbb", fontStyle: revealed ? "normal" : "italic", cursor: "pointer" }}
-      title={revealed ? "" : "Click to reveal"}
+      style={{
+        color: revealed ? 'var(--perf-text-primary)' : 'var(--perf-text-secondary)',
+        fontStyle: revealed ? 'normal' : 'italic',
+        cursor: 'pointer',
+      }}
+      title={revealed ? '' : 'Click to reveal'}
       onClick={() => setRevealed(true)}
     >
-      {revealed
-        ? (ip_addresses && ip_addresses.length > 0 ? ip_addresses.join(', ') : "N/A")
-        : "Hidden for privacy"}
+      {display}
     </span>
   );
 }
@@ -620,6 +790,7 @@ function DiskUsagePieChart({ disks }: { disks: any[] }) {
         ))}
         {/* Center text: total used % */}
         <text
+          className="disk-pie-chart-value"
           x="50%"
           y="50%"
           textAnchor="middle"

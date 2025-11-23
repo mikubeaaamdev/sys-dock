@@ -19,16 +19,24 @@ const Header: React.FC<HeaderProps> = ({
   subtitle = "Smart Monitoring Info Tool and Widget Manager" 
 }) => {
   const { isExpanded } = useContext(SidebarContext);
-  const { alert } = useAlert();
+  const { alert, enabled } = useAlert();
   const [showDropdown, setShowDropdown] = useState(false);
   const navigate = useNavigate();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const handleBellClick = () => setShowDropdown(!showDropdown);
+  const handleBellClick = () => {
+    if (enabled && alert) setShowDropdown(!showDropdown);
+  };
   const handleAlertClick = () => {
     setShowDropdown(false);
-    navigate('/performance');
-    localStorage.setItem('performanceTab', 'cpu');
+    // Determine which tab to show based on alert message
+    let tab = 'cpu';
+    if (alert?.toLowerCase().includes('memory')) tab = 'memory';
+    else if (alert?.toLowerCase().includes('disk')) tab = 'disks';
+    else if (alert?.toLowerCase().includes('gpu')) tab = 'gpu';
+    else if (alert?.toLowerCase().includes('network')) tab = 'network';
+    localStorage.setItem('performanceTab', tab);
+    navigate('/performance', { state: { tab } }); // <-- Pass tab in navigation state
   };
 
   // Close dropdown when clicking outside
@@ -72,23 +80,13 @@ const Header: React.FC<HeaderProps> = ({
             <HomeIcon className="control-icon" />
           </button>
           <div style={{ position: 'relative' }}>
-            <button className="control-btn" onClick={handleBellClick}>
+            <button className="control-btn" onClick={handleBellClick} disabled={!enabled}>
               <NotificationIcon className="control-icon" />
-              {alert && (
-                <span style={{
-                  position: 'absolute',
-                  top: 2,
-                  right: 2,
-                  background: '#ef4444',
-                  color: '#fff',
-                  borderRadius: '50%',
-                  padding: '2px 6px',
-                  fontSize: '12px',
-                  fontWeight: 'bold'
-                }}>!</span>
+              {enabled && alert && (
+                <span className="notification-badge">!</span>
               )}
             </button>
-            {showDropdown && alert && (
+            {enabled && showDropdown && alert && (
               <div
                 ref={dropdownRef}
                 style={{

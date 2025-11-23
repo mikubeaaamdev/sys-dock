@@ -1,9 +1,19 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import "./Settings.css";
 import { useTheme } from "../context/ThemeContext";
+import { useAlert } from "../context/AlertContext";
 
 const Settings: React.FC = () => {
   const { theme, setTheme } = useTheme();
+  const { enabled, setEnabled } = useAlert();
+  const [revealIps, setRevealIps] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('reveal_ips') === 'true';
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem('reveal_ips', String(revealIps)); } catch { /* ignore */ }
+  }, [revealIps]);
 
   return (
     <div className="settings-container">
@@ -34,7 +44,19 @@ const Settings: React.FC = () => {
         </div>
         <div className="settings-row">
           <span>Enable Notifications:</span>
-          <input type="checkbox" checked disabled />
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={e => setEnabled(e.target.checked)}
+          />
+        </div>
+        <div className="settings-row">
+          <span>Show IP addresses in Performance:</span>
+          <input
+            type="checkbox"
+            checked={revealIps}
+            onChange={e => setRevealIps(e.target.checked)}
+          />
         </div>
       </div>
       <div className="settings-section">

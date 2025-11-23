@@ -11,7 +11,11 @@ import './Sidebar.css';
 import { useSidebar } from '../context/SidebarContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+  showConfirm: boolean;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ showConfirm }) => {
   const { isExpanded, toggleSidebar } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
@@ -50,6 +54,7 @@ const Sidebar: React.FC = () => {
           );
         })}
       </div>
+      {showConfirm && <div className="sidebar-dim-overlay"></div>}
     </div>
   );
 };
