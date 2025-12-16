@@ -72,6 +72,7 @@ struct ProcessInfo {
     pid: i32,
     exe: Option<String>,
     icon: Option<String>, // base64 PNG string or None
+    runtime: Option<u64>, // runtime in seconds
 }
 
 #[derive(Serialize)]
@@ -209,6 +210,7 @@ fn fetch_processes() -> Vec<ProcessInfo> {
             let icon = exe_path
                 .as_ref()
                 .and_then(|path| extract_icon_base64(path).ok());
+            let runtime = proc.run_time(); // Get runtime in seconds
             ProcessInfo {
                 name: proc.name().to_string(),
                 cpu: proc.cpu_usage(),
@@ -216,6 +218,7 @@ fn fetch_processes() -> Vec<ProcessInfo> {
                 pid: proc.pid().to_string().parse::<i32>().unwrap_or(0),
                 exe: exe_path,
                 icon,
+                runtime: Some(runtime),
             }
         })
         .collect()
@@ -764,6 +767,28 @@ fn fetch_system_logs() -> Vec<LogEntry> {
     logs
 }
 
+#[tauri::command]
+fn launch_system_utility(utility: String) -> Result<String, String> {
+    #[cfg(target_os = "windows")]
+    {
+        use std::process::Command;
+        
+        let result = Command::new("cmd")
+            .args(&["/C", &utility])
+            .spawn();
+            
+        match result {
+            Ok(_) => Ok(format!("Launched {}", utility)),
+            Err(e) => Err(format!("Failed to launch {}: {}", utility, e))
+        }
+    }
+    
+    #[cfg(not(target_os = "windows"))]
+    {
+        Err("System utilities are only available on Windows".to_string())
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 fn main() {
     let logger_state = Arc::new(Mutex::new(PerformanceLoggerState {
@@ -789,7 +814,8 @@ fn main() {
             stop_performance_logging,
             get_performance_logs,
             clear_performance_logs,
-            is_performance_logging_active
+            is_performance_logging_active,
+            launch_system_utility
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

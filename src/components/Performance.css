@@ -28,6 +28,7 @@
   box-sizing: border-box;
   background: var(--bg);
   color: var(--perf-text-primary);
+  contain: layout style paint;
 }
 
 .performance-page h1 {
@@ -48,6 +49,8 @@
 .performance-card {
   background: var(--perf-card-bg);
   color: var(--perf-text-primary);
+  contain: layout style paint;
+  will-change: transform;
 }
 
 .performance-card h2 {
@@ -372,6 +375,8 @@
   gap: 2rem;
   width: 100%;
   justify-content: center;
+  contain: layout style paint;
+  will-change: transform;
 }
 
 /* Left panel styles */

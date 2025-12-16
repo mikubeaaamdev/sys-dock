@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { useLocation } from 'react-router-dom'; // Add this import
 import { useAlert } from '../context/AlertContext';
@@ -58,6 +58,7 @@ const Performance: React.FC = () => {
   const [] = useState<{ [key: string]: string }>({});
   const [showConfirm, setShowConfirm] = useState(false);
   const [cleanSuccess, setCleanSuccess] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // network rate history and previous snapshot for diffing
   const [netHistory, setNetHistory] = useState<{ [ifName: string]: { rx: number[]; tx: number[] } }>({});
@@ -68,10 +69,11 @@ const Performance: React.FC = () => {
     const fetchSystemInfo = async () => {
       try {
         const result = await invoke<any>('fetch_system_overview');
-        if (result.cpu) {
-          // Simulate moving CPU speed and temperature
-          const fakeSpeed = 4100 + Math.round(100 * Math.sin(tick / 10)); // 4100-4200 MHz
-          const fakeTemp = 50 + 5 * Math.abs(Math.sin(tick / 15));        // 50-55 °C
+        
+        // Only update data for active tab to reduce processing
+        if (activeTab === 'cpu' && result.cpu) {
+          const fakeSpeed = 4100 + Math.round(100 * Math.sin(tick / 10));
+          const fakeTemp = 50 + 5 * Math.abs(Math.sin(tick / 15));
           setCpu({
             ...result.cpu,
             frequency: fakeSpeed,
@@ -83,28 +85,30 @@ const Performance: React.FC = () => {
               : [...h.slice(-59), result.cpu.usage ?? 0]
           );
         }
-        // Simulate GPU sensor data
-        const fakeGpuUsage = getSimulatedGpuUsage(tick, 0); // GPU 0
-        const fakeGpuTemp = 40 + 25 * Math.abs(Math.sin(tick / 14));   // 40-65 °C
-        const fakeVramUsage = 1024 * 1024 * (2048 + 2048 * Math.abs(Math.sin(tick / 12))); // 2-4GB in bytes
-        setGpu({
-          ...result.gpus?.[0],
-          ram: 8192 * 1024 * 1024,
-          driver_version: "AMD 25.8.1",
-          vram_usage: fakeVramUsage,
-          usage: fakeGpuUsage,
-          temperature: fakeGpuTemp,
-        });
-        setGpuHistory(h =>
-          h.length === 0
-            ? Array(60).fill(fakeGpuUsage)
-            : [...h.slice(-59), fakeGpuUsage]
-        );
+        
+        if (activeTab === 'gpu') {
+          const fakeGpuUsage = getSimulatedGpuUsage(tick, 0);
+          const fakeGpuTemp = 40 + 25 * Math.abs(Math.sin(tick / 14));
+          const fakeVramUsage = 1024 * 1024 * (2048 + 2048 * Math.abs(Math.sin(tick / 12)));
+          setGpu({
+            ...result.gpus?.[0],
+            ram: 8192 * 1024 * 1024,
+            driver_version: "AMD 25.8.1",
+            vram_usage: fakeVramUsage,
+            usage: fakeGpuUsage,
+            temperature: fakeGpuTemp,
+          });
+          setGpuHistory(h =>
+            h.length === 0
+              ? Array(60).fill(fakeGpuUsage)
+              : [...h.slice(-59), fakeGpuUsage]
+          );
+        }
+        
         tick++;
         setGpuTick(tick);
-        localStorage.setItem('gpuTick', String(tick));
 
-        if (result.memory) {
+        if (activeTab === 'memory' && result.memory) {
           setMemory(result.memory);
           setMemoryHistory(h =>
             h.length === 0
@@ -112,7 +116,8 @@ const Performance: React.FC = () => {
               : [...h.slice(-59), result.memory.percentage ?? 0]
           );
         }
-        if (result.disks) {
+        
+        if (activeTab === 'disks' && result.disks) {
           setDisks(result.disks);
           setDiskHistory(prev => {
             const updated: { [key: string]: number[] } = { ...prev };
@@ -126,19 +131,23 @@ const Performance: React.FC = () => {
             return updated;
           });
         }
+        
+        setIsLoading(false);
       } catch (e) {
         console.error(e);
+        setIsLoading(false);
       }
-      tick++;
     };
 
     fetchSystemInfo();
-    const interval = setInterval(fetchSystemInfo, 1000);
+    const interval = setInterval(fetchSystemInfo, 2000); // Increased from 1s to 2s
     return () => clearInterval(interval);
-  }, []);
+  }, [activeTab]);
 
-  // replace simple 5s fetchNetwork effect with per-second rate + 60s history
+  // Network polling - only when network tab is active
   useEffect(() => {
+    if (activeTab !== 'network') return;
+    
     const fetchNetworkRates = async () => {
       try {
         const result = await invoke<any>('fetch_network_info');
@@ -151,7 +160,7 @@ const Performance: React.FC = () => {
           let txRate = 0;
           if (prev) {
             const dt = Math.max(0.5, (now - prev.ts) / 1000.0);
-            rxRate = ((iface.bytes_received ?? 0) - prev.rx) / dt; // bytes/sec
+            rxRate = ((iface.bytes_received ?? 0) - prev.rx) / dt;
             txRate = ((iface.bytes_transmitted ?? 0) - prev.tx) / dt;
             if (rxRate < 0) rxRate = 0;
             if (txRate < 0) txRate = 0;
@@ -169,9 +178,9 @@ const Performance: React.FC = () => {
     };
 
     fetchNetworkRates();
-    const interval = setInterval(fetchNetworkRates, 1000);
+    const interval = setInterval(fetchNetworkRates, 2000); // Increased from 1s to 2s
     return () => clearInterval(interval);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ensure netHistory has an entry for every interface (pre-seed) so chart always receives length-60 arrays
   useEffect(() => {
@@ -188,10 +197,15 @@ const Performance: React.FC = () => {
     if (changed) setNetHistory(updated);
   }, [networkInfo]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Save tab on change
+  // Batch localStorage updates
   useEffect(() => {
-    localStorage.setItem('performanceTab', activeTab);
-  }, [activeTab]);
+    const batchUpdate = () => {
+      localStorage.setItem('performanceTab', activeTab);
+      localStorage.setItem('gpuTick', String(gpuTick));
+    };
+    const timer = setTimeout(batchUpdate, 100);
+    return () => clearTimeout(timer);
+  }, [activeTab, gpuTick]);
 
   // When route changes to /performance, restore last tab or default to 'cpu'
   useEffect(() => {
@@ -250,15 +264,27 @@ const Performance: React.FC = () => {
     { key: 'network', label: 'NETWORK' } // <-- Add this tab
   ];
 
-  // pretty/compact formatter for bytes/sec
-  const fmtSpeed = (bytesPerSec: number) => {
+  // Memoized formatted values to prevent recalculation
+  const formattedMemory = useMemo(() => ({
+    used: ((memory.used ?? 0) / 1024 / 1024 / 1024).toFixed(1),
+    total: ((memory.total ?? 0) / 1024 / 1024 / 1024).toFixed(1),
+    percentage: Math.round(memory.percentage ?? 0)
+  }), [memory.used, memory.total, memory.percentage]);
+
+  const networkStats = useMemo(() => ({
+    totalRx: Object.values(netHistory).reduce((s, h) => s + (h.rx[h.rx.length-1]||0), 0),
+    totalTx: Object.values(netHistory).reduce((s, h) => s + (h.tx[h.tx.length-1]||0), 0)
+  }), [netHistory]);
+
+  // Memoized formatter for bytes/sec
+  const fmtSpeed = useCallback((bytesPerSec: number) => {
     if (!bytesPerSec || bytesPerSec <= 0) return '0 B/s';
     const units = ['B/s','KB/s','MB/s','GB/s','TB/s'];
     let i = 0;
     let v = bytesPerSec;
-    while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+    while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; };
     return `${v.toFixed(v >= 10 ? 1 : 2)} ${units[i]}`;
-  };
+  }, []);
 
   return (
     <div className="performance-container">
@@ -358,8 +384,8 @@ const Performance: React.FC = () => {
                   />
                 </svg>
                 <div className="memory-circle-text">
-                  {((memory.used ?? 0) / 1024 / 1024 / 1024).toFixed(1)} / {((memory.total ?? 0) / 1024 / 1024 / 1024).toFixed(1)} GB<br />
-                  ({Math.round(memory.percentage ?? 0)}%)
+                  {formattedMemory.used} / {formattedMemory.total} GB<br />
+                  ({formattedMemory.percentage}%)
                 </div>
               </div>
               {/* Stats in two columns */}
@@ -610,11 +636,11 @@ const Performance: React.FC = () => {
                 </div>
                 <div className="network-stat">
                   <div className="stat-label">Total RX</div>
-                  <div className="stat-value">{fmtSpeed(Object.values(netHistory).reduce((s, h) => s + (h.rx[h.rx.length-1]||0), 0))}</div>
+                  <div className="stat-value">{fmtSpeed(networkStats.totalRx)}</div>
                 </div>
                 <div className="network-stat">
                   <div className="stat-label">Total TX</div>
-                  <div className="stat-value">{fmtSpeed(Object.values(netHistory).reduce((s, h) => s + (h.tx[h.tx.length-1]||0), 0))}</div>
+                  <div className="stat-value">{fmtSpeed(networkStats.totalTx)}</div>
                 </div>
               </div>
             </div>
@@ -638,8 +664,8 @@ function getUsageColor(usage: number) {
   return "#FF6B6B";                      // red for high usage
 }
 
-// Small SimpleChart tweak to respect theme variables (use CSS vars for grid/bg so chart is visible in dark)
-function SimpleChart({ data, color, size = "large" }: { data: number[]; color: string; size?: "large" | "small" }) {
+// Optimized chart component with React.memo to prevent unnecessary re-renders
+const SimpleChart = React.memo(({ data, color, size = "large" }: { data: number[]; color: string; size?: "large" | "small" }) => {
   const width = size === "large" ? 1000 : 220;
   const height = size === "large" ? 500 : 80;
   const gridX = size === "large" ? 12 : 6;
@@ -681,9 +707,14 @@ function SimpleChart({ data, color, size = "large" }: { data: number[]; color: s
       <polyline fill="none" stroke={color} strokeWidth="2" points={points} />
     </svg>
   );
-}
+}, (prevProps, nextProps) => {
+  // Only re-render if data or styling actually changed
+  return JSON.stringify(prevProps.data.slice(-10)) === JSON.stringify(nextProps.data.slice(-10)) &&
+         prevProps.color === nextProps.color &&
+         prevProps.size === nextProps.size;
+});
 
-function IpCell({ ip_addresses }: { ip_addresses: string[] }) {
+const IpCell = React.memo(({ ip_addresses }: { ip_addresses: string[] }) => {
   // respect global user preference (settings) for auto-reveal
   const defaultReveal = typeof window !== 'undefined' && localStorage.getItem('reveal_ips') === 'true';
   const [revealed, setRevealed] = useState<boolean>(defaultReveal);
@@ -708,9 +739,9 @@ function IpCell({ ip_addresses }: { ip_addresses: string[] }) {
       {display}
     </span>
   );
-}
+});
 
-function DiskUsagePieChart({ disks }: { disks: any[] }) {
+const DiskUsagePieChart = React.memo(({ disks }: { disks: any[] }) => {
   // Assign a color to each disk (repeat if more disks)
   const colors = [
     "#3B82F6", // blue
@@ -830,6 +861,9 @@ function DiskUsagePieChart({ disks }: { disks: any[] }) {
       </div>
     </div>
   );
-}
+}, (prevProps, nextProps) => {
+  // Only re-render if disks array actually changed
+  return JSON.stringify(prevProps.disks) === JSON.stringify(nextProps.disks);
+});
 
 export default Performance;
