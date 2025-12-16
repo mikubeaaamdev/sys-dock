@@ -9,6 +9,7 @@ import Processes from './components/Processes';
 import { AlertProvider } from './context/AlertContext';
 import Widgets from './components/Widgets';
 import Settings from './components/Settings';
+import Logs from './components/Logs';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
               <Route path="/performance" element={<Performance />} />
               <Route path="/processes" element={<Processes />} />
               <Route path="/widgets" element={<Widgets />} />
+              <Route path="/logs" element={<Logs />} />
               <Route path="/settings" element={<Settings />} />
               {/* Add other routes as needed */}
             </Routes>

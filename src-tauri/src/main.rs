@@ -3,8 +3,10 @@
 
 use serde::Serialize;
 use sysinfo::{NetworkExt, System, SystemExt, CpuExt, DiskExt, ProcessExt};
-use get_if_addrs::{get_if_addrs, IfAddr, Ifv4Addr, Ifv6Addr}; // Add this
-// HashMap not needed anymore
+use get_if_addrs::{get_if_addrs, IfAddr, Ifv4Addr, Ifv6Addr};
+use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
@@ -504,17 +506,290 @@ fn check_alerts(cpu_threshold: f32, ram_threshold: f64, disk_threshold: f64) -> 
     alerts
 }
 
+#[derive(Serialize, Clone, Debug)]
+struct PerformanceLog {
+    timestamp: String,
+    cpu_usage: f32,
+    memory_usage: u64,
+    memory_total: u64,
+    disk_usage: u64,
+    disk_total: u64,
+}
+
+struct PerformanceLoggerState {
+    logs: Vec<PerformanceLog>,
+    is_logging: bool,
+    handle: Option<thread::JoinHandle<()>>,
+}
+
+type LoggerState = Arc<Mutex<PerformanceLoggerState>>;
+
+#[tauri::command]
+fn start_performance_logging(
+    state: tauri::State<LoggerState>,
+    interval_secs: u64,
+) -> Result<(), String> {
+    let mut logger = state.lock().unwrap();
+    
+    if logger.is_logging {
+        return Err("Logging is already active".to_string());
+    }
+    
+    logger.is_logging = true;
+    let state_clone = Arc::clone(&state.inner());
+    
+    let handle = thread::spawn(move || {
+        loop {
+            {
+                let logger = state_clone.lock().unwrap();
+                if !logger.is_logging {
+                    break;
+                }
+            }
+            
+            // Collect performance data
+            let mut sys = System::new_all();
+            sys.refresh_all();
+            thread::sleep(Duration::from_millis(100));
+            sys.refresh_cpu();
+            
+            let cpu_usage = sys.global_cpu_info().cpu_usage();
+            let memory_usage = sys.used_memory();
+            let memory_total = sys.total_memory();
+            
+            let (disk_usage, disk_total) = sys.disks().iter().fold((0u64, 0u64), |(used, total), disk| {
+                (used + (disk.total_space() - disk.available_space()), total + disk.total_space())
+            });
+            
+            let log = PerformanceLog {
+                timestamp: chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+                cpu_usage,
+                memory_usage,
+                memory_total,
+                disk_usage,
+                disk_total,
+            };
+            
+            {
+                let mut logger = state_clone.lock().unwrap();
+                logger.logs.push(log);
+            }
+            
+            thread::sleep(Duration::from_secs(interval_secs));
+        }
+    });
+    
+    logger.handle = Some(handle);
+    Ok(())
+}
+
+#[tauri::command]
+fn stop_performance_logging(state: tauri::State<LoggerState>) -> Result<(), String> {
+    let mut logger = state.lock().unwrap();
+    logger.is_logging = false;
+    Ok(())
+}
+
+#[tauri::command]
+fn get_performance_logs(state: tauri::State<LoggerState>) -> Vec<PerformanceLog> {
+    let logger = state.lock().unwrap();
+    logger.logs.clone()
+}
+
+#[tauri::command]
+fn clear_performance_logs(state: tauri::State<LoggerState>) -> Result<(), String> {
+    let mut logger = state.lock().unwrap();
+    if logger.is_logging {
+        return Err("Cannot clear logs while logging is active".to_string());
+    }
+    logger.logs.clear();
+    Ok(())
+}
+
+#[tauri::command]
+fn is_performance_logging_active(state: tauri::State<LoggerState>) -> bool {
+    let logger = state.lock().unwrap();
+    logger.is_logging
+}
+
+#[derive(Serialize)]
+struct LogEntry {
+    timestamp: String,
+    level: String,
+    source: String,
+    message: String,
+}
+
+#[tauri::command]
+fn fetch_system_logs() -> Vec<LogEntry> {
+    let mut logs = Vec::new();
+    
+    #[cfg(target_os = "windows")]
+    {
+        use std::process::Command;
+        
+        // Get recent system and application logs from Windows Event Viewer
+        let output = Command::new("powershell")
+            .args(&[
+                "-Command",
+                "Get-EventLog -LogName System -Newest 50 | Select-Object TimeGenerated, EntryType, Source, Message | ConvertTo-Json"
+            ])
+            .output();
+        
+        if let Ok(output) = output {
+            if let Ok(json_str) = String::from_utf8(output.stdout) {
+                if let Ok(events) = serde_json::from_str::<serde_json::Value>(&json_str) {
+                    if let Some(array) = events.as_array() {
+                        for event in array {
+                            let timestamp = event["TimeGenerated"]
+                                .as_str()
+                                .unwrap_or("Unknown")
+                                .to_string();
+                            let level = event["EntryType"]
+                                .as_str()
+                                .unwrap_or("Info")
+                                .to_string();
+                            let source = event["Source"]
+                                .as_str()
+                                .unwrap_or("System")
+                                .to_string();
+                            let message = event["Message"]
+                                .as_str()
+                                .unwrap_or("")
+                                .to_string();
+                            
+                            logs.push(LogEntry {
+                                timestamp,
+                                level: match level.as_str() {
+                                    "Error" => "Error".to_string(),
+                                    "Warning" => "Warning".to_string(),
+                                    _ => "Info".to_string(),
+                                },
+                                source,
+                                message: message.chars().take(200).collect(),
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Get application logs as well
+        let app_output = Command::new("powershell")
+            .args(&[
+                "-Command",
+                "Get-EventLog -LogName Application -Newest 50 | Select-Object TimeGenerated, EntryType, Source, Message | ConvertTo-Json"
+            ])
+            .output();
+        
+        if let Ok(output) = app_output {
+            if let Ok(json_str) = String::from_utf8(output.stdout) {
+                if let Ok(events) = serde_json::from_str::<serde_json::Value>(&json_str) {
+                    if let Some(array) = events.as_array() {
+                        for event in array {
+                            let timestamp = event["TimeGenerated"]
+                                .as_str()
+                                .unwrap_or("Unknown")
+                                .to_string();
+                            let level = event["EntryType"]
+                                .as_str()
+                                .unwrap_or("Info")
+                                .to_string();
+                            let source = event["Source"]
+                                .as_str()
+                                .unwrap_or("Application")
+                                .to_string();
+                            let message = event["Message"]
+                                .as_str()
+                                .unwrap_or("")
+                                .to_string();
+                            
+                            logs.push(LogEntry {
+                                timestamp,
+                                level: match level.as_str() {
+                                    "Error" => "Error".to_string(),
+                                    "Warning" => "Warning".to_string(),
+                                    _ => "Info".to_string(),
+                                },
+                                source,
+                                message: message.chars().take(200).collect(),
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    #[cfg(not(target_os = "windows"))]
+    {
+        use std::fs::File;
+        use std::io::{BufRead, BufReader};
+        
+        // Try to read from common log locations on Unix-like systems
+        let log_paths = vec![
+            "/var/log/syslog",
+            "/var/log/system.log",
+            "/var/log/messages",
+        ];
+        
+        for path in log_paths {
+            if let Ok(file) = File::open(path) {
+                let reader = BufReader::new(file);
+                let lines: Vec<String> = reader.lines()
+                    .filter_map(|l| l.ok())
+                    .rev()
+                    .take(50)
+                    .collect();
+                
+                for line in lines {
+                    // Parse typical syslog format
+                    let parts: Vec<&str> = line.splitn(4, ' ').collect();
+                    if parts.len() >= 4 {
+                        logs.push(LogEntry {
+                            timestamp: format!("{} {} {}", parts[0], parts[1], parts[2]),
+                            level: "Info".to_string(),
+                            source: path.to_string(),
+                            message: parts[3].chars().take(200).collect(),
+                        });
+                    }
+                }
+                break;
+            }
+        }
+    }
+    
+    // Sort logs by timestamp (most recent first)
+    logs.reverse();
+    logs
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 fn main() {
+    let logger_state = Arc::new(Mutex::new(PerformanceLoggerState {
+        logs: Vec::new(),
+        is_logging: false,
+        handle: None,
+    }));
+
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
+        .manage(logger_state)
         .invoke_handler(tauri::generate_handler![
             greet,
             fetch_system_overview,
             fetch_processes,
             fetch_network_info,
-            end_process, // <-- Add this line
+            end_process,
             get_disk_health,
-            clean_storage // <-- Add this line
+            clean_storage,
+            fetch_system_logs,
+            start_performance_logging,
+            stop_performance_logging,
+            get_performance_logs,
+            clear_performance_logs,
+            is_performance_logging_active
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -11,9 +11,18 @@ const Settings: React.FC = () => {
     return localStorage.getItem('reveal_ips') === 'true';
   });
 
+  const [autoStartLogging, setAutoStartLogging] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('auto_start_logging') === 'true';
+  });
+
   useEffect(() => {
     try { localStorage.setItem('reveal_ips', String(revealIps)); } catch { /* ignore */ }
   }, [revealIps]);
+
+  useEffect(() => {
+    try { localStorage.setItem('auto_start_logging', String(autoStartLogging)); } catch { /* ignore */ }
+  }, [autoStartLogging]);
 
   return (
     <div className="settings-container">
@@ -56,6 +65,14 @@ const Settings: React.FC = () => {
             type="checkbox"
             checked={revealIps}
             onChange={e => setRevealIps(e.target.checked)}
+          />
+        </div>
+        <div className="settings-row">
+          <span>Auto-start Performance Logging on app launch:</span>
+          <input
+            type="checkbox"
+            checked={autoStartLogging}
+            onChange={e => setAutoStartLogging(e.target.checked)}
           />
         </div>
       </div>
