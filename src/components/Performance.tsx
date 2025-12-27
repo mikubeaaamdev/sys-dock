@@ -25,12 +25,38 @@ function ConfirmDialog({ open, onConfirm, onCancel }: { open: boolean, onConfirm
   );
 }
 
+function LoadingSkeleton() {
+  return (
+    <div className="loading-skeleton">
+      <div className="skeleton-header"></div>
+      <div className="skeleton-content">
+        <div className="skeleton-card skeleton-pulse"></div>
+        <div className="skeleton-card skeleton-pulse"></div>
+      </div>
+    </div>
+  );
+}
+
 const Performance: React.FC = () => {
   const location = useLocation(); // Get current route
   const [activeTab, setActiveTab] = useState(() => {
+    // Check if navigation state has a tab preference
+    const state = location.state as { tab?: string } | null;
+    if (state?.tab) {
+      return state.tab;
+    }
     // Restore last tab or default to 'cpu'
     return localStorage.getItem('performanceTab') || 'cpu';
   });
+  
+  // Update activeTab when location state changes
+  useEffect(() => {
+    const state = location.state as { tab?: string } | null;
+    if (state?.tab) {
+      setActiveTab(state.tab);
+      localStorage.setItem('performanceTab', state.tab);
+    }
+  }, [location.state]);
   const [cpu, setCpu] = useState<{
     name?: string;
     usage?: number;
@@ -59,6 +85,8 @@ const Performance: React.FC = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [cleanSuccess, setCleanSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [speedTestRunning, setSpeedTestRunning] = useState(false);
+  const [speedTestResult, setSpeedTestResult] = useState<{ download_mbps: number; upload_mbps: number; latency_ms: number } | null>(null);
 
   // network rate history and previous snapshot for diffing
   const [netHistory, setNetHistory] = useState<{ [ifName: string]: { rx: number[]; tx: number[] } }>({});
@@ -158,16 +186,18 @@ const Performance: React.FC = () => {
           const prev = netPrevRef.current[key];
           let rxRate = 0;
           let txRate = 0;
+          
           if (prev) {
-            const dt = Math.max(0.5, (now - prev.ts) / 1000.0);
-            rxRate = ((iface.bytes_received ?? 0) - prev.rx) / dt;
-            txRate = ((iface.bytes_transmitted ?? 0) - prev.tx) / dt;
-            if (rxRate < 0) rxRate = 0;
-            if (txRate < 0) txRate = 0;
+            const dt = Math.max(0.5, (now - prev.ts) / 1000.0); // Allow faster updates
+            const rxDiff = (iface.bytes_received ?? 0) - prev.rx;
+            const txDiff = (iface.bytes_transmitted ?? 0) - prev.tx;
+            rxRate = Math.max(0, rxDiff / dt);
+            txRate = Math.max(0, txDiff / dt);
           }
           if (!updatedHistory[key]) updatedHistory[key] = { rx: Array(60).fill(0), tx: Array(60).fill(0) };
           updatedHistory[key].rx = [...(updatedHistory[key].rx.slice(-59)), rxRate];
           updatedHistory[key].tx = [...(updatedHistory[key].tx.slice(-59)), txRate];
+          // Always update previous snapshot for next calculation
           netPrevRef.current[key] = { rx: iface.bytes_received ?? 0, tx: iface.bytes_transmitted ?? 0, ts: now };
         });
         setNetHistory(updatedHistory);
@@ -178,7 +208,7 @@ const Performance: React.FC = () => {
     };
 
     fetchNetworkRates();
-    const interval = setInterval(fetchNetworkRates, 2000); // Increased from 1s to 2s
+    const interval = setInterval(fetchNetworkRates, 1000); // Poll every 1 second for real-time updates
     return () => clearInterval(interval);
   }, [activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -256,6 +286,29 @@ const Performance: React.FC = () => {
     setShowConfirm(false);
   };
 
+  const runSpeedTest = async () => {
+    setSpeedTestRunning(true);
+    setSpeedTestResult(null);
+    try {
+      const result = await invoke<{ download_mbps: number; upload_mbps: number; latency_ms: number; status: string }>('run_speed_test');
+      setSpeedTestResult(result);
+      setAlert(`Speed Test Complete! Ping: ${result.latency_ms}ms | Download: ${result.download_mbps.toFixed(2)} Mbps | Upload: ${result.upload_mbps.toFixed(2)} Mbps (Click to view Network tab)`);
+      
+      // Switch to network tab after speed test completes
+      setTimeout(() => {
+        setActiveTab('network');
+        localStorage.setItem('performanceTab', 'network');
+      }, 500);
+      
+      setTimeout(() => setAlert(null), 6000);
+    } catch (error) {
+      setAlert('Speed test failed: ' + String(error));
+      setTimeout(() => setAlert(null), 3000);
+    } finally {
+      setSpeedTestRunning(false);
+    }
+  };
+
   const tabs = [
     { key: 'cpu', label: 'CPU' },
     { key: 'memory', label: 'MEMORY' },
@@ -304,6 +357,10 @@ const Performance: React.FC = () => {
         ))}
       </div>
       <div className="performance-content">
+        {isLoading ? (
+          <LoadingSkeleton />
+        ) : (
+          <>
         {/* CPU Section */}
         {activeTab === 'cpu' && (
           <div className="perf-section">
@@ -594,30 +651,14 @@ const Performance: React.FC = () => {
                         <div className="net-name">{iface.name}</div>
                         <div className={`net-status ${iface.status === "Connected" ? 'connected' : 'disconnected'}`}>{iface.status}</div>
                       </div>
-                      <div className="net-actions">
-                        <button className="net-action-btn" onClick={() => {
-                          const target = (iface.ip_addresses && iface.ip_addresses[0]) || '8.8.8.8';
-                          invoke('ping_host', { host: target, timeout_ms: 1200 }).then((r:any) => {
-                            if (r != null) setAlert(`Ping ${target}: ${String(r)} ms`);
-                            else setAlert(`Ping ${target}: timed out`);
-                            setTimeout(()=>setAlert(null), 3000);
-                          }).catch(e => setAlert(`Ping failed: ${String(e)}`));
-                        }}>Ping</button>
-                      </div>
                     </div>
 
                     <div className="net-card-body">
-                      <div className="net-chart">
-                        <SimpleChart data={hist.rx.map(v => Math.min(100, (v*8)/1_000_000))} color="#3B82F6" size="small" />
-                        <div className="net-chart-legend">
-                          <div className="net-legend-item rx">↓ {rxMbps >= 0.1 ? `${rxMbps.toFixed(2)} Mbps` : fmtSpeed(rxNow)}</div>
-                          <div className="net-legend-item tx">↑ {txMbps >= 0.1 ? `${txMbps.toFixed(2)} Mbps` : fmtSpeed(txNow)}</div>
-                        </div>
-                      </div>
-
                       <div className="net-details">
                         <div className="net-row"><strong>IP</strong> <IpCell ip_addresses={iface.ip_addresses ?? []} /></div>
-                        <div className="net-row"><strong>Packets</strong> <span>{(iface.packets_received ?? 0).toLocaleString()} / {(iface.packets_transmitted ?? 0).toLocaleString()}</span></div>
+                        <div className="net-row"><strong><span style={{color: '#3B82F6', fontSize: '1.1rem', marginRight: '6px'}}>↓</span>Download</strong> <span style={{color: '#3B82F6', fontWeight: 600}}>{rxMbps.toFixed(3)} Mbps</span></div>
+                        <div className="net-row"><strong><span style={{color: '#10B981', fontSize: '1.1rem', marginRight: '6px'}}>↑</span>Upload</strong> <span style={{color: '#10B981', fontWeight: 600}}>{txMbps.toFixed(3)} Mbps</span></div>
+                        <div className="net-row"><strong>Packets RX / TX</strong> <span>{(iface.packets_received ?? 0).toLocaleString()} / {(iface.packets_transmitted ?? 0).toLocaleString()}</span></div>
                         <div className="net-row"><strong>Errors / Drops</strong> <span>{(iface.errors ?? 0)} / {(iface.drops ?? 0)}</span></div>
                         <div className="net-row small-muted">Updated: {iface.last_updated_unix ? new Date(iface.last_updated_unix * 1000).toLocaleTimeString() : '—'}</div>
                       </div>
@@ -643,8 +684,37 @@ const Performance: React.FC = () => {
                   <div className="stat-value">{fmtSpeed(networkStats.totalTx)}</div>
                 </div>
               </div>
+              
+              <div style={{ marginTop: '24px', textAlign: 'center' }}>
+                <button 
+                  className="speed-test-btn" 
+                  onClick={runSpeedTest}
+                  disabled={speedTestRunning}
+                >
+                  {speedTestRunning ? 'Testing...' : 'Run Speed Test'}
+                </button>
+                
+                {speedTestResult && (
+                  <div className="speed-test-results">
+                    <div className="speed-result-item">
+                      <span className="speed-label">Latency:</span>
+                      <span className="speed-value">{speedTestResult.latency_ms} ms</span>
+                    </div>
+                    <div className="speed-result-item">
+                      <span className="speed-label"><span style={{color: '#3B82F6', marginRight: '6px'}}>↓</span>Download:</span>
+                      <span className="speed-value" style={{color: '#3B82F6'}}>{speedTestResult.download_mbps.toFixed(2)} Mbps</span>
+                    </div>
+                    <div className="speed-result-item">
+                      <span className="speed-label"><span style={{color: '#10B981', marginRight: '6px'}}>↑</span>Upload:</span>
+                      <span className="speed-value" style={{color: '#10B981'}}>{speedTestResult.upload_mbps.toFixed(2)} Mbps</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
+        )}
+          </>
         )}
       </div>
 

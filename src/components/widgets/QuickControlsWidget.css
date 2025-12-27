@@ -1,0 +1,225 @@
+.quick-controls-widget {
+  padding: 20px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  min-height: 250px;
+}
+
+[data-theme="light"] .quick-controls-widget {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.qc-header {
+  margin-bottom: 20px;
+}
+
+.qc-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+[data-theme="dark"] .qc-title {
+  color: var(--text-primary);
+}
+
+.qc-toggles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.qc-toggle-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 15px 10px;
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+[data-theme="dark"] .qc-toggle-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .qc-toggle-btn {
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: #555 !important;
+}
+
+.qc-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+[data-theme="light"] .qc-toggle-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.qc-toggle-btn.active {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+  color: white;
+}
+
+.qc-icon {
+  font-size: 20px;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.qc-control {
+  margin-bottom: 20px;
+}
+
+.qc-control:last-child {
+  margin-bottom: 0;
+}
+
+.qc-control-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.qc-control-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+[data-theme="dark"] .qc-control-label {
+  color: var(--text-primary);
+}
+
+.qc-icon-btn {
+  background: none;
+  border: none;
+  color: #333;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .qc-icon-btn {
+  color: var(--text-primary);
+}
+
+.qc-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="light"] .qc-icon-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.qc-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #666;
+}
+
+[data-theme="dark"] .qc-value {
+  color: var(--text-secondary);
+}
+
+.qc-slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+[data-theme="light"] .qc-slider {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.qc-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid var(--accent-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .qc-slider::-webkit-slider-thumb {
+  background: white;
+}
+
+.qc-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.qc-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  border: 2px solid var(--accent-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .qc-slider::-moz-range-thumb {
+  background: white;
+}
+
+.qc-slider::-moz-range-thumb:hover {
+  transform: scale(1.2);
+}
+
+.qc-slider::-webkit-slider-runnable-track {
+  background: linear-gradient(
+    to right,
+    var(--accent-color) 0%,
+    var(--accent-color) var(--slider-value, 50%),
+    rgba(255, 255, 255, 0.1) var(--slider-value, 50%),
+    rgba(255, 255, 255, 0.1) 100%
+  );
+  border-radius: 3px;
+  height: 6px;
+}
+
+[data-theme="light"] .qc-slider::-webkit-slider-runnable-track {
+  background: linear-gradient(
+    to right,
+    var(--accent-color) 0%,
+    var(--accent-color) var(--slider-value, 50%),
+    rgba(0, 0, 0, 0.1) var(--slider-value, 50%),
+    rgba(0, 0, 0, 0.1) 100%
+  );
+}

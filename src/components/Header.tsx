@@ -2,9 +2,7 @@ import React, { useContext, useState, useRef, useEffect } from 'react';
 import sysLogo from '../assets/syslogo.svg';
 import './Header.css';
 import { 
-  HomeIcon, 
-  NotificationIcon, 
-  SettingsIcon 
+  NotificationIcon
 } from '../assets/icons';
 import { UtilitiesIcon } from '../assets/icons/HeaderIcons';
 import { SidebarContext } from '../context/SidebarContext';
@@ -149,12 +147,6 @@ const Header: React.FC<HeaderProps> = ({
         </div>
         
         <div className="header-controls">
-          <button
-            className="control-btn home-button"
-            onClick={() => navigate('/')}
-          >
-            <HomeIcon className="control-icon" />
-          </button>
           <div style={{ position: 'relative' }}>
             <button className="control-btn" onClick={handleBellClick} disabled={!enabled}>
               <NotificationIcon className="control-icon" />
@@ -288,9 +280,6 @@ const Header: React.FC<HeaderProps> = ({
               </div>
             )}
           </div>
-          <button className="control-btn">
-            <SettingsIcon className="control-icon" />
-          </button>
         </div>
       </div>
     </header>

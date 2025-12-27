@@ -1,0 +1,171 @@
+.timer-widget {
+  padding: 20px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  min-height: 250px;
+}
+
+[data-theme="light"] .timer-widget {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.timer-header {
+  margin-bottom: 20px;
+}
+
+.timer-mode-toggle {
+  display: flex;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 4px;
+  border-radius: 8px;
+}
+
+[data-theme="light"] .timer-mode-toggle {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.timer-mode-toggle button {
+  flex: 1;
+  padding: 10px 20px;
+  border: none;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  opacity: 0.7;
+}
+
+[data-theme="light"] .timer-mode-toggle button {
+  background: rgba(0, 0, 0, 0.08);
+  color: #666;
+  opacity: 1;
+}
+
+.timer-mode-toggle button:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.08);
+  opacity: 0.85;
+}
+
+[data-theme="light"] .timer-mode-toggle button:hover:not(.active) {
+  background: rgba(0, 0, 0, 0.12);
+  color: #333;
+}
+
+.timer-mode-toggle button.active {
+  background: var(--accent-color);
+  color: white;
+  opacity: 1;
+  font-weight: 700;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+  transform: scale(1.02);
+}
+
+[data-theme="light"] .timer-mode-toggle button.active {
+  background: #3b82f6;
+  box-shadow: 0 2px 10px rgba(59, 130, 246, 0.4);
+}
+
+.timer-display {
+  text-align: center;
+  padding: 30px 0;
+}
+
+.timer-display .time-text {
+  font-size: 56px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: 'Segoe UI', monospace;
+}
+
+.timer-input {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.input-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input-group input {
+  width: 60px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 18px;
+  text-align: center;
+  font-weight: 600;
+}
+
+[data-theme="light"] .input-group input {
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  color: #333;
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+.input-group span {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.timer-controls {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.timer-controls button {
+  padding: 12px 30px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-start {
+  background: var(--accent-color);
+  color: white;
+}
+
+.btn-start:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.btn-pause {
+  background: #ff9800;
+  color: white;
+}
+
+.btn-pause:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.btn-reset {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.btn-reset:hover {
+  background: rgba(255, 255, 255, 0.15);
+}

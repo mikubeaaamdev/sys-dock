@@ -7,6 +7,49 @@ use get_if_addrs::{get_if_addrs, IfAddr, Ifv4Addr, Ifv6Addr};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
+
+#[tauri::command]
+fn get_username() -> String {
+    std::env::var("USERNAME")
+        .or_else(|_| std::env::var("USER"))
+        .unwrap_or_else(|_| String::from("User"))
+}
+
+#[tauri::command]
+fn open_path_in_explorer(path: String) -> Result<(), String> {
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("explorer")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| format!("Failed to open path: {}", e))?;
+        Ok(())
+    }
+    
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| format!("Failed to open path: {}", e))?;
+        Ok(())
+    }
+    
+    #[cfg(target_os = "linux")]
+    {
+        std::process::Command::new("xdg-open")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| format!("Failed to open path: {}", e))?;
+        Ok(())
+    }
+    
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    {
+        Err("Opening paths is not supported on this platform".to_string())
+    }
+}
+
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
@@ -340,8 +383,12 @@ fn extract_icon_base64(_exe_path: &str) -> Result<String, ()> {
 
 #[tauri::command]
 fn fetch_network_info() -> NetworkInfo {
-    let mut sys = System::new_all();
+    let mut sys = System::new();
     sys.refresh_networks_list();
+    
+    // Refresh twice to get accurate deltas
+    sys.refresh_networks();
+    std::thread::sleep(std::time::Duration::from_millis(100));
     sys.refresh_networks();
 
     // collect addresses per interface name (flattened)
@@ -372,9 +419,13 @@ fn fetch_network_info() -> NetworkInfo {
     let mut interfaces = Vec::new();
 
     for (name, data) in sys.networks() {
-        let packets_received = 0u64;
-        let packets_transmitted = 0u64;
-        let errors = 0u64;
+        // Get total cumulative bytes (these are totals since interface was up)
+        let bytes_received = data.total_received();
+        let bytes_transmitted = data.total_transmitted();
+        
+        let packets_received = data.total_packets_received();
+        let packets_transmitted = data.total_packets_transmitted();
+        let errors = data.total_errors_on_received() + data.total_errors_on_transmitted();
         let drops = 0u64;
 
         // fuzzy-match addresses collected from get_if_addrs
@@ -419,16 +470,13 @@ fn fetch_network_info() -> NetworkInfo {
         ip_addresses.sort();
         ip_addresses.dedup();
 
-        // Debug log so you can see mapping in console (rebuild & check Tauri logs)
-        println!("fetch_network_info: iface={} ips={:?}", name, ip_addresses);
-
         let status = if !ip_addresses.is_empty() { "Connected".to_string() } else { "Disconnected".to_string() };
 
         interfaces.push(NetworkInterface {
             name: name.to_string(),
             status,
-            bytes_received: data.received(),
-            bytes_transmitted: data.transmitted(),
+            bytes_received,
+            bytes_transmitted,
             packets_received,
             packets_transmitted,
             errors,
@@ -803,6 +851,7 @@ fn main() {
         .manage(logger_state)
         .invoke_handler(tauri::generate_handler![
             greet,
+            get_username,
             fetch_system_overview,
             fetch_processes,
             fetch_network_info,
@@ -815,7 +864,9 @@ fn main() {
             get_performance_logs,
             clear_performance_logs,
             is_performance_logging_active,
-            launch_system_utility
+            launch_system_utility,
+            run_speed_test,
+            open_path_in_explorer
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -964,3 +1015,81 @@ fn clean_storage() -> Result<String, String> {
         Ok("Clean Storage is only supported on Windows.".to_string())
     }
 }
+
+#[derive(Serialize)]
+struct SpeedTestResult {
+    download_mbps: f64,
+    upload_mbps: f64,
+    latency_ms: u64,
+    status: String,
+}
+
+#[tauri::command]
+fn run_speed_test() -> Result<SpeedTestResult, String> {
+    use std::time::Instant;
+    
+    // Use larger test files for better accuracy on fast connections
+    let download_url = "http://ipv4.download.thinkbroadband.com/50MB.zip";
+    
+    let client = reqwest::blocking::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
+    
+    // Measure latency with multiple pings and average
+    let mut latency_sum = 0u64;
+    let ping_count = 3;
+    for _ in 0..ping_count {
+        let start_latency = Instant::now();
+        if client.head("http://www.google.com").send().is_ok() {
+            latency_sum += start_latency.elapsed().as_millis() as u64;
+        }
+    }
+    let latency = latency_sum / ping_count;
+    
+    // Download test (50MB for more accurate measurement)
+    let start_download = Instant::now();
+    let response = client
+        .get(download_url)
+        .send()
+        .map_err(|e| format!("Download test failed: {}", e))?;
+    
+    let bytes = response
+        .bytes()
+        .map_err(|e| format!("Failed to read response: {}", e))?;
+    
+    let download_duration = start_download.elapsed().as_secs_f64();
+    let download_mbps = if download_duration > 0.0 {
+        (bytes.len() as f64 * 8.0) / (download_duration * 1_000_000.0)
+    } else {
+        0.0
+    };
+    
+    // Upload test (2MB for better accuracy)
+    let upload_data = vec![0u8; 2 * 1024 * 1024];
+    let start_upload = Instant::now();
+    
+    let upload_mbps = match client
+        .post("https://httpbin.org/post")
+        .body(upload_data.clone())
+        .send()
+    {
+        Ok(_) => {
+            let upload_duration = start_upload.elapsed().as_secs_f64();
+            if upload_duration > 0.0 {
+                (upload_data.len() as f64 * 8.0) / (upload_duration * 1_000_000.0)
+            } else {
+                0.0
+            }
+        }
+        Err(_) => 0.0,
+    };
+    
+    Ok(SpeedTestResult {
+        download_mbps,
+        upload_mbps,
+        latency_ms: latency,
+        status: "completed".to_string(),
+    })
+}
+
