@@ -172,6 +172,7 @@ const WeatherWidget: React.FC = () => {
     };
   }, [selectedCities]);
 
+  // Helper function to map WMO weather codes to icons
   const mapWeatherCode = (code: number): 'cloud' | 'sun' | 'rain' | 'cloudy' => {
     if (code === 0) return 'sun'; // Clear sky
     if (code <= 3) return 'cloudy'; // Partly cloudy

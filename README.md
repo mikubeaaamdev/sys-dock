@@ -4,65 +4,65 @@ A high-performance desktop system monitoring application with an instant-access 
 
 ![SysDock Interface](docs/sysdock-preview.png)
 
-## 🎯 Core System Monitoring Features
+## Core System Monitoring Features
 
-### 🖥️ **CPU Monitoring**
+### CPU Monitoring
 - Real-time CPU usage percentage with live graphs
 - Clock speed monitoring and core count display
 - Multi-core processor load visualization
 - Performance alerts for high CPU usage
 
-### 💾 **Memory Management**
+### Memory Management
 - Dynamic RAM usage tracking with available memory display
 - Critical low memory alerts and notifications
 - Memory optimization recommendations
 - Real-time memory allocation charts
 
-### 💿 **Disk Management**
+### Disk Management
 - Drive/partition usage monitoring for each disk
 - Large file detection and low space highlighting
 - Disk cleanup utility integration
 - HDD/SSD performance metrics
 
-### 🌐 **Network Monitoring**
+### Network Monitoring
 - IP address display and active connection tracking
 - Real-time bandwidth usage monitoring
 - Network interface status (WiFi/Ethernet)
 - Connection quality indicators
 
-### ⚡ **Process Management**
+### Process Management
 - Kill or pause processes directly from the app
 - Quick resource management interface
 - Process priority adjustment
 - CPU/memory usage per process
 
-### 🚨 **System Alerts & Notifications**
+### System Alerts & Notifications
 - High CPU usage warnings
 - RAM critical level notifications
 - Disk space alerts
 - Network connectivity issues
 
-### 🛠️ **System Utilities Integration**
+### System Utilities Integration
 - Quick access to Task Manager
 - Disk Cleanup utility launcher
 - Network settings shortcuts
 - System configuration tools
 
-### 📊 **Performance Logging**
+### Performance Logging
 - Export CPU, memory, and disk usage logs
 - Historical performance tracking
 - Data visualization with Chart.js
 - Performance trend analysis
 
-## 🎨 Instant Access Widget Dock
+## Instant Access Widget Dock
 
-### 🔘 **Transparent Dock Interface**
+### Transparent Dock Interface
 - Subtle transparent button reveals widget hub with one click
 - Clean, uncluttered desktop when widgets are hidden
 - Smooth animations and glass morphism design
 - Floating sidebar with instant access
 
-### 🧩 **All-in-One Widget Space**
+### All-in-One Widget Space
 - **Weather Widgets**: Multi-location weather tracking
 - **System Info**: Real-time CPU, RAM, disk, network stats
 - **Notes & To-Do Lists**: Task and reminder management
@@ -70,28 +70,28 @@ A high-performance desktop system monitoring application with an instant-access 
 - **Quick Controls**: WiFi, sound, brightness shortcuts
 - **Calendar & Clock**: Date/time management
 
-### 🎛️ **Customizable Experience**
+### Customizable Experience
 - **Resize & Rearrange**: Drag-and-drop widget positioning
 - **Style Customization**: Match widgets to personal preferences
 - **Widget Library**: Add/remove widgets anytime
 - **Theme Support**: Light/dark mode with custom colors
 - **Layout Presets**: Save and load widget configurations
 
-### 🔄 **Smart Background Updates**
+### Smart Background Updates
 - Auto-refreshing weather data
 - Real-time system statistics
 - Background reminder notifications
 - Live network status updates
 - Minimal CPU/memory impact during updates
 
-### ⚡ **Performance-Optimized**
+### Performance-Optimized
 - **Memory Usage**: <50MB RAM footprint (vs 150MB+ Electron apps)
 - **CPU Usage**: <2% idle, <5% active monitoring
 - **Startup Time**: <3 seconds cold start
 - **Update Frequency**: 1-second real-time monitoring
 - **Response Time**: <100ms UI interactions
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Frontend**: React 18 + TypeScript + Vite
 - **Backend**: Rust (Tauri) for native system access
@@ -100,7 +100,7 @@ A high-performance desktop system monitoring application with an instant-access 
 - **Icons**: Custom SVG icon library optimized for performance
 - **Architecture**: Modular widget-based design
 
-## 📦 Installation & Setup
+## Installation & Setup
 
 ### Prerequisites
 - [Node.js](https://nodejs.org/) (v18+)
@@ -130,7 +130,7 @@ npm run tauri build
 # Output will be in src-tauri/target/release/bundle/
 ```
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 sys-dock/
@@ -168,9 +168,9 @@ sys-dock/
 └── public/                  # Static assets
 ```
 
-## 🎨 Widget Ecosystem
+## Widget Ecosystem
 
-### 📊 **System Monitoring Widgets**
+### System Monitoring Widgets
 - **CPU Widget**: Usage graphs, clock speed, core count
 - **Memory Widget**: RAM usage with critical alerts
 - **Disk Widgets**: Drive monitoring with space alerts
@@ -178,21 +178,21 @@ sys-dock/
 - **GPU Widget**: Graphics card performance metrics
 - **Process Widget**: Kill/pause processes with resource usage
 
-### 🌟 **Productivity Widgets**
+### Productivity Widgets
 - **Weather Widget**: Multi-location weather tracking
 - **Reminder Widget**: Notes, to-do lists, deadlines
 - **Timer Widget**: Stopwatch, countdown, productivity timers
 - **Quick Controls**: WiFi, sound, brightness shortcuts
 - **Calendar Widget**: Date/time with event management
 
-### 🚨 **Alert & Notification System**
+### Alert & Notification System
 - Real-time system performance alerts
 - Critical resource usage warnings
 - Custom notification thresholds
 - Performance degradation detection
 - Export logs for performance analysis
 
-## 🚀 Performance Benchmarks
+## Performance Benchmarks
 
 | Metric | Target | Achievement |
 |--------|--------|-------------|
@@ -203,7 +203,7 @@ sys-dock/
 | Update Frequency | 1s | Real-time |
 | UI Response | <100ms | ~50ms |
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/cpu-monitoring-enhancement`)
@@ -215,11 +215,11 @@ sys-dock/
 8. Push to branch (`git push origin feature/cpu-monitoring-enhancement`)
 9. Open a Pull Request
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Built with [Tauri](https://tauri.app/) for native performance and system access
 - UI components inspired by modern system monitoring tools

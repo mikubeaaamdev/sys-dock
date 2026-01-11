@@ -49,6 +49,9 @@ Desktop.ini
 $RECYCLE.BIN/
 .Spotlight-V100
 .Trashes
+
+# Local-only files (not pushed to GitHub)
+local-only/
 ehthumbs.db
 
 # TypeScript cache
