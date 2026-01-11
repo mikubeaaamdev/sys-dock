@@ -211,21 +211,6 @@ const WeatherWidget: React.FC = () => {
     return descriptions[code] || 'Unknown';
   };
 
-  // Helper function to map weather conditions to icons (kept for compatibility)
-  const mapWeatherCondition = (condition: string): 'cloud' | 'sun' | 'rain' | 'cloudy' => {
-    const conditionMap: { [key: string]: 'cloud' | 'sun' | 'rain' | 'cloudy' } = {
-      'Clear': 'sun',
-      'Clouds': 'cloudy',
-      'Rain': 'rain',
-      'Drizzle': 'rain',
-      'Thunderstorm': 'rain',
-      'Snow': 'cloud',
-      'Mist': 'cloud',
-      'Fog': 'cloud'
-    };
-    return conditionMap[condition] || 'cloudy';
-  };
-
   return (
     <div className="weather-widget glass">
       <div className="weather-header">

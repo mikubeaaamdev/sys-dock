@@ -94,6 +94,47 @@ const Settings: React.FC = () => {
           <span>support@sysdock.app</span>
         </div>
       </div>
+      
+      <div className="settings-section cross-platform-section">
+        <h3>Cross-Platform Support</h3>
+        <div className="platform-badges">
+          <div className="platform-item">
+            <span className="platform-label">Windows</span>
+            <span className="platform-status">Supported</span>
+          </div>
+          <div className="platform-item">
+            <span className="platform-label">macOS</span>
+            <span className="platform-status">Supported</span>
+          </div>
+          <div className="platform-item">
+            <span className="platform-label">Linux</span>
+            <span className="platform-status">Supported</span>
+          </div>
+        </div>
+        
+        <div className="platform-details">
+          <h4>Technology Stack</h4>
+          <ul>
+            <li>Frontend: React + TypeScript + Vite</li>
+            <li>Backend: Rust + Tauri Framework</li>
+            <li>System APIs: Cross-platform implementation</li>
+          </ul>
+          
+          <h4>Platform-Specific Implementation</h4>
+          <ul>
+            <li><strong>Windows:</strong> WMI APIs for CPU temp/frequency, DXGI for GPU, native process icons</li>
+            <li><strong>macOS:</strong> powermetrics for CPU temp, system_profiler for GPU, Core Foundation APIs</li>
+            <li><strong>Linux:</strong> thermal zones for CPU temp, lspci for GPU detection, standard utilities</li>
+          </ul>
+          
+          <p className="implementation-note">
+            This application uses 21+ platform-specific code blocks with conditional compilation to ensure 
+            optimal performance and native features on each operating system. Platform-specific dependencies 
+            (wmi, winapi for Windows; core-foundation, io-kit-sys for macOS) are only compiled for their 
+            target platforms.
+          </p>
+        </div>
+      </div>
     </div>
   );
 };

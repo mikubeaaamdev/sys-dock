@@ -16,7 +16,7 @@ function App() {
     <AlertProvider>
       <SidebarProvider>
         <BrowserRouter>
-          <Sidebar />
+          <Sidebar showConfirm={false} />
           <Layout>
             <Routes>
               <Route path="/" element={<Overview />} />

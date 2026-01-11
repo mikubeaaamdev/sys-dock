@@ -29,6 +29,7 @@ interface SystemOverview {
     usage: number;
     name: string;
     cores: number;
+    uptime?: number;
   };
   disks: DiskInfo[];
 }
@@ -44,7 +45,6 @@ const Overview: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [username, setUsername] = useState<string>('');
 
-  // Sample data for charts that don't have real-time data yet
   const wifiData = [70, 80, 85, 90, 85, 88, 92, 89, 85, 88, 90, 95, 92, 88, 85, 89];
 
   const formatGB = (bytes: number) => (bytes / (1024 * 1024 * 1024)).toFixed(1);
@@ -77,8 +77,11 @@ const Overview: React.FC = () => {
   };
 
   const formatUptime = () => {
-    // Placeholder - would come from backend
-    return '5h 23m';
+    if (!systemData?.cpu?.uptime) return '--';
+    const uptimeSeconds = systemData.cpu.uptime;
+    const hours = Math.floor(uptimeSeconds / 3600);
+    const minutes = Math.floor((uptimeSeconds % 3600) / 60);
+    return `${hours}h ${minutes}m`;
   };
 
   const getDiskStatus = (percentage: number) => {

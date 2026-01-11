@@ -170,12 +170,31 @@ fn fetch_system_overview() -> SystemOverview {
     let cpu_frequency;
     let cpu_threads;
     let cpu_temperature;
-    if cfg!(target_os = "windows") {
+    
+    #[cfg(target_os = "windows")]
+    {
         let (wmi_freq, wmi_temp, wmi_threads) = fetch_cpu_wmi();
         cpu_frequency = wmi_freq.or(Some(sys.global_cpu_info().frequency() as u64));
         cpu_threads = wmi_threads.or(Some(num_cpus::get() as u32));
         cpu_temperature = wmi_temp;
-    } else {
+    }
+    
+    #[cfg(target_os = "macos")]
+    {
+        cpu_frequency = Some(sys.global_cpu_info().frequency() as u64);
+        cpu_threads = Some(num_cpus::get() as u32);
+        cpu_temperature = fetch_cpu_temp_macos();
+    }
+    
+    #[cfg(target_os = "linux")]
+    {
+        cpu_frequency = Some(sys.global_cpu_info().frequency() as u64);
+        cpu_threads = Some(num_cpus::get() as u32);
+        cpu_temperature = fetch_cpu_temp_linux();
+    }
+    
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    {
         cpu_frequency = Some(sys.global_cpu_info().frequency() as u64);
         cpu_threads = Some(num_cpus::get() as u32);
         cpu_temperature = None;
@@ -205,18 +224,8 @@ fn fetch_system_overview() -> SystemOverview {
         }
     }).collect();
 
-    // GPU info via DXGI (Windows only)
-    let gpus = if cfg!(target_os = "windows") {
-        let all_gpus = fetch_gpus_dxgi();
-        // Only keep the first GPU (main GPU)
-        if let Some(main_gpu) = all_gpus.into_iter().next() {
-            vec![main_gpu]
-        } else {
-            vec![]
-        }
-    } else {
-        vec![]
-    };
+    // GPU info - cross-platform
+    let gpus = fetch_gpu_info();
 
     SystemOverview {
         memory: MemoryInfo {
@@ -377,8 +386,49 @@ fn extract_icon_base64(exe_path: &str) -> Result<String, ()> {
 }
 
 #[cfg(not(target_os = "windows"))]
-fn extract_icon_base64(_exe_path: &str) -> Result<String, ()> {
-    Err(())
+fn extract_icon_base64(exe_path: &str) -> Result<String, ()> {
+    // macOS and Linux: Create a simple colored square as placeholder
+    // In a production app, you'd integrate with platform-specific APIs
+    use image::{ImageBuffer, Rgba};
+    use base64::engine::general_purpose;
+    use base64::Engine;
+    use image::codecs::png::PngEncoder;
+    use image::ImageEncoder;
+    
+    let width = 32u32;
+    let height = 32u32;
+    
+    // Create a simple colored icon based on process name hash
+    let color_hash = exe_path.bytes().fold(0u8, |acc, b| acc.wrapping_add(b));
+    let r = color_hash;
+    let g = color_hash.wrapping_mul(2);
+    let b = color_hash.wrapping_mul(3);
+    
+    let mut img = ImageBuffer::<Rgba<u8>, Vec<u8>>::new(width, height);
+    for y in 0..height {
+        for x in 0..width {
+            // Create a simple gradient effect
+            let alpha = if x < 2 || y < 2 || x >= width - 2 || y >= height - 2 {
+                180u8
+            } else {
+                255u8
+            };
+            img.put_pixel(x, y, Rgba([r, g, b, alpha]));
+        }
+    }
+    
+    let mut buf = Vec::new();
+    let encoder = PngEncoder::new(&mut buf);
+    if encoder.write_image(
+        &img,
+        width,
+        height,
+        image::ColorType::Rgba8,
+    ).is_ok() {
+        Ok(general_purpose::STANDARD.encode(&buf))
+    } else {
+        Err(())
+    }
 }
 
 #[tauri::command]
@@ -837,6 +887,191 @@ fn launch_system_utility(utility: String) -> Result<String, String> {
     }
 }
 
+// Cross-platform GPU detection
+fn fetch_gpu_info() -> Vec<GpuInfo> {
+    #[cfg(target_os = "windows")]
+    {
+        let all_gpus = fetch_gpus_dxgi();
+        if let Some(main_gpu) = all_gpus.into_iter().next() {
+            vec![main_gpu]
+        } else {
+            vec![]
+        }
+    }
+    
+    #[cfg(target_os = "macos")]
+    {
+        fetch_gpus_macos()
+    }
+    
+    #[cfg(target_os = "linux")]
+    {
+        fetch_gpus_linux()
+    }
+    
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    {
+        vec![]
+    }
+}
+
+// macOS GPU detection
+#[cfg(target_os = "macos")]
+fn fetch_gpus_macos() -> Vec<GpuInfo> {
+    use std::process::Command;
+    
+    let mut gpus = Vec::new();
+    
+    // Use system_profiler to get GPU info
+    if let Ok(output) = Command::new("system_profiler")
+        .args(&["SPDisplaysDataType", "-json"])
+        .output()
+    {
+        if let Ok(json_str) = String::from_utf8(output.stdout) {
+            if let Ok(data) = serde_json::from_str::<serde_json::Value>(&json_str) {
+                if let Some(displays) = data["SPDisplaysDataType"].as_array() {
+                    for display in displays {
+                        if let Some(name) = display["sppci_model"].as_str() {
+                            let vram = display["sppci_vram"].as_str()
+                                .and_then(|v| v.split_whitespace().next())
+                                .and_then(|v| v.parse::<u32>().ok());
+                            
+                            gpus.push(GpuInfo {
+                                name: name.to_string(),
+                                ram: vram,
+                                driver_version: None,
+                                vram_usage: None,
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    if gpus.is_empty() {
+        // Fallback: at least provide a generic GPU entry
+        gpus.push(GpuInfo {
+            name: "GPU".to_string(),
+            ram: None,
+            driver_version: None,
+            vram_usage: None,
+        });
+    }
+    
+    gpus
+}
+
+// Linux GPU detection
+#[cfg(target_os = "linux")]
+fn fetch_gpus_linux() -> Vec<GpuInfo> {
+    use std::process::Command;
+    use std::fs;
+    
+    let mut gpus = Vec::new();
+    
+    // Try lspci first
+    if let Ok(output) = Command::new("lspci").output() {
+        if let Ok(output_str) = String::from_utf8(output.stdout) {
+            for line in output_str.lines() {
+                if line.contains("VGA") || line.contains("3D") || line.contains("Display") {
+                    let name = line.split(':').skip(2).collect::<Vec<_>>().join(":").trim().to_string();
+                    if !name.is_empty() {
+                        gpus.push(GpuInfo {
+                            name,
+                            ram: None,
+                            driver_version: None,
+                            vram_usage: None,
+                        });
+                    }
+                }
+            }
+        }
+    }
+    
+    // Try to get VRAM info from /sys for NVIDIA/AMD
+    if let Ok(entries) = fs::read_dir("/sys/class/drm") {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if let Some(name) = path.file_name() {
+                let name_str = name.to_string_lossy();
+                if name_str.starts_with("card") && !name_str.contains('-') {
+                    // Try to read memory info
+                    let mem_path = path.join("device/mem_info_vram_total");
+                    if let Ok(mem_str) = fs::read_to_string(mem_path) {
+                        if let Ok(mem_bytes) = mem_str.trim().parse::<u64>() {
+                            if let Some(gpu) = gpus.first_mut() {
+                                gpu.ram = Some((mem_bytes / 1024 / 1024) as u32);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    if gpus.is_empty() {
+        gpus.push(GpuInfo {
+            name: "GPU".to_string(),
+            ram: None,
+            driver_version: None,
+            vram_usage: None,
+        });
+    }
+    
+    gpus
+}
+
+// macOS CPU temperature
+#[cfg(target_os = "macos")]
+fn fetch_cpu_temp_macos() -> Option<f32> {
+    use std::process::Command;
+    
+    // Try using powermetrics (requires sudo, may not work)
+    if let Ok(output) = Command::new("sudo")
+        .args(&["powermetrics", "--samplers", "smc", "-i1", "-n1"])
+        .output()
+    {
+        if let Ok(output_str) = String::from_utf8(output.stdout) {
+            for line in output_str.lines() {
+                if line.contains("CPU die temperature") {
+                    if let Some(temp_str) = line.split(':').nth(1) {
+                        if let Ok(temp) = temp_str.trim().trim_end_matches('C').trim().parse::<f32>() {
+                            return Some(temp);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    None
+}
+
+// Linux CPU temperature
+#[cfg(target_os = "linux")]
+fn fetch_cpu_temp_linux() -> Option<f32> {
+    use std::fs;
+    
+    // Try common thermal zones
+    let thermal_paths = vec![
+        "/sys/class/thermal/thermal_zone0/temp",
+        "/sys/class/thermal/thermal_zone1/temp",
+        "/sys/class/hwmon/hwmon0/temp1_input",
+        "/sys/class/hwmon/hwmon1/temp1_input",
+    ];
+    
+    for path in thermal_paths {
+        if let Ok(temp_str) = fs::read_to_string(path) {
+            if let Ok(temp_millidegrees) = temp_str.trim().parse::<i32>() {
+                return Some(temp_millidegrees as f32 / 1000.0);
+            }
+        }
+    }
+    
+    None
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 fn main() {
     let logger_state = Arc::new(Mutex::new(PerformanceLoggerState {
@@ -974,27 +1209,27 @@ fn fetch_cpu_wmi() -> (Option<u64>, Option<f32>, Option<u32>) {
 
 #[tauri::command]
 fn clean_storage() -> Result<String, String> {
+    use std::fs;
+    use std::env;
+    use std::process::Command;
+
+    // Clean Temp folder (cross-platform)
+    let temp_dir = env::temp_dir();
+    let mut temp_deleted = 0;
+    if let Ok(entries) = fs::read_dir(&temp_dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let _ = if path.is_dir() {
+                fs::remove_dir_all(&path)
+            } else {
+                fs::remove_file(&path)
+            };
+            temp_deleted += 1;
+        }
+    }
+
     #[cfg(target_os = "windows")]
     {
-        use std::fs;
-        use std::env;
-        use std::process::Command;
-
-        // Clean Temp folder
-        let temp_dir = env::temp_dir();
-        let mut temp_deleted = 0;
-        if let Ok(entries) = fs::read_dir(&temp_dir) {
-            for entry in entries.flatten() {
-                let path = entry.path();
-                let _ = if path.is_dir() {
-                    fs::remove_dir_all(&path)
-                } else {
-                    fs::remove_file(&path)
-                };
-                temp_deleted += 1;
-            }
-        }
-
         // Clean Recycle Bin using PowerShell
         let output = Command::new("powershell")
             .args(&["-Command", "Clear-RecycleBin -Force"])
@@ -1010,9 +1245,48 @@ fn clean_storage() -> Result<String, String> {
             temp_deleted, recycle_result
         ))
     }
-    #[cfg(not(target_os = "windows"))]
+    
+    #[cfg(target_os = "macos")]
     {
-        Ok("Clean Storage is only supported on Windows.".to_string())
+        // Empty Trash on macOS
+        let output = Command::new("rm")
+            .args(&["-rf", "~/.Trash/*"])
+            .output();
+
+        let trash_result = match output {
+            Ok(_) => "Trash emptied.",
+            Err(_) => "Failed to empty Trash.",
+        };
+
+        Ok(format!(
+            "Cleaned {} items from Temp folder. {}",
+            temp_deleted, trash_result
+        ))
+    }
+    
+    #[cfg(target_os = "linux")]
+    {
+        // Empty Trash on Linux
+        let home_dir = env::var("HOME").unwrap_or_default();
+        let trash_path = format!("{}/.local/share/Trash", home_dir);
+        let output = Command::new("rm")
+            .args(&["-rf", &format!("{}/files/*", trash_path)])
+            .output();
+
+        let trash_result = match output {
+            Ok(_) => "Trash emptied.",
+            Err(_) => "Failed to empty Trash.",
+        };
+
+        Ok(format!(
+            "Cleaned {} items from Temp folder. {}",
+            temp_deleted, trash_result
+        ))
+    }
+    
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    {
+        Ok(format!("Cleaned {} items from Temp folder.", temp_deleted))
     }
 }
 

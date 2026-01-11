@@ -33,3 +33,141 @@
   color: #555;
   font-size: 0.95rem;
 }
+
+.platform-support {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.platform-support h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.platforms {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.platform-badge {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: rgba(103, 126, 234, 0.1);
+  border-radius: 12px;
+  border: 2px solid rgba(103, 126, 234, 0.3);
+  transition: all 0.3s ease;
+}
+
+.platform-badge:hover {
+  background: rgba(103, 126, 234, 0.2);
+  border-color: rgba(103, 126, 234, 0.5);
+  transform: translateY(-2px);
+}
+
+.platform-icon {
+  font-size: 2rem;
+}
+
+.platform-badge span:last-child {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.platform-note {
+  font-size: 0.85rem !important;
+  color: #677eea !important;
+  font-style: italic;
+  text-align: center;
+  margin-top: 0.5rem !important;
+}
+
+.tech-stack {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.tech-stack h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.tech-stack ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  list-style-type: none;
+}
+
+.tech-stack li {
+  margin-bottom: 0.5rem;
+  color: #555;
+  font-size: 0.9rem;
+  position: relative;
+  padding-left: 1rem;
+}
+
+.tech-stack li::before {
+  content: "▸";
+  position: absolute;
+  left: 0;
+  color: #677eea;
+  font-weight: bold;
+}
+
+.tech-stack strong {
+  color: #333;
+}
+
+.cross-platform-details {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.cross-platform-details h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.cross-platform-details ul {
+  margin: 0.75rem 0;
+  padding-left: 1.5rem;
+  list-style-type: none;
+}
+
+.cross-platform-details li {
+  margin-bottom: 0.75rem;
+  color: #555;
+  font-size: 0.9rem;
+  position: relative;
+  padding-left: 1rem;
+  line-height: 1.5;
+}
+
+.cross-platform-details li::before {
+  content: "▸";
+  position: absolute;
+  left: 0;
+  color: #677eea;
+  font-weight: bold;
+}
+
+.detail-text {
+  font-size: 0.9rem !important;
+  color: #555 !important;
+  line-height: 1.6 !important;
+  margin: 0.75rem 0 !important;
+}
