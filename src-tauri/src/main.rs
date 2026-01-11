@@ -837,11 +837,13 @@ fn fetch_system_logs() -> Vec<LogEntry> {
         for path in log_paths {
             if let Ok(file) = File::open(path) {
                 let reader = BufReader::new(file);
-                let lines: Vec<String> = reader.lines()
+                let mut lines: Vec<String> = reader.lines()
                     .filter_map(|l| l.ok())
-                    .rev()
-                    .take(50)
                     .collect();
+                
+                // Get last 50 lines
+                lines.reverse();
+                lines.truncate(50);
                 
                 for line in lines {
                     // Parse typical syslog format
